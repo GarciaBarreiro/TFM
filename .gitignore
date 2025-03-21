@@ -13,3 +13,4 @@ main
 sandbox.cpp
 lib/*
 Release
+.vscode/
