@@ -48,3 +48,11 @@ else ()
     message(SEND_ERROR "Could not find LASLIB")
 endif ()
 
+# MathGeoLib
+find_package(MATHGEOLIB REQUIRED)
+if (${MATHGEOLIB_FOUND})
+    include_directories(${MATHGEOLIB_INCLUDE_DIR})
+    message(STATUS "MathGeoLib include: ${MATHGEOLIB_INCLUDE_DIR}")
+else ()
+    message(SEND_ERROR "Could not find MathGeoLib")
+endif ()

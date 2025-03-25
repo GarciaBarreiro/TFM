@@ -7,6 +7,9 @@
 #include "TimeWatcher.hpp"
 #include <armadillo>	// find covariance matrix
 #include <cmath>
+#include "Geometry/OBB.h"
+#include "Math/float3.h"
+// #include "Geometry/GeometryAll.h"
 
 namespace fs = std::filesystem;
 
@@ -59,39 +62,35 @@ int main(int argc, char* argv[])
 	TimeWatcher tw;
 
 	// TODO: decimate point cloud when reading
-	// decimate only when point cloud is big, no need for smaller ones
-	// (unless PCA takes more time than expected)
 	tw.start();
 	std::vector<Lpoint> points = readPointCloud(mainOptions.inputFile);	// TODO: decimate
 	tw.stop();
 	std::cout << "Number of read points: " << points.size() << "\n";
 	std::cout << "Time to read points: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 
-	// PCA
-	auto A = cov(points);
-	arma::vec eigval;
-	arma::mat eigvec;
-	arma::eig_sym(eigval, eigvec, A);
+	// create OBB using MathGeoLib
 
-	// find max eigval and corresponding eigvec (TODO: clean)
-	float max = eigval[0];
-	int idx = 0;
-	for (int i = 1; i < 3; i++) {
-		if (abs(eigval[i]) > max) {
-			idx = i;
-		}
+	// convert std::vector<Lpoint> to math::vec
+	std::vector<float3> points_f3;
+	for (const Lpoint& p : points) {
+		points_f3.push_back(float3(p.getX(), p.getY(), p.getZ()));
 	}
 
-	// normalise eigenvector
-	arma::vec unit = arma::normalise(eigvec.col(idx));
+	// prints Error: volume > 0.g in OBB.cpp:1942, but seems to work nonetheless
+	OBB obb = OBB::OptimalEnclosingOBB(points_f3.data(), points_f3.size());
 
-	// rotate unitary eigenvec to (1,0,0)
-	arma::vec axis {1,0,0};	// column vector
+	std::cout << obb.axis[0] << "\n";
+	std::cout << obb.axis[1] << "\n";
+	std::cout << obb.axis[2] << "\n";
 
-	// cmath acos (arma::acos returns error)
-	auto angle = acos(arma::norm_dot(eigvec.col(idx), axis));
+	// using axis[1] because for alcoy axis[0] is Z
+	// but maybe for another point cloud axis[1] is Z, so search for a way to automatize this
+	arma::vec unit = {obb.axis[1][0], obb.axis[1][1], obb.axis[1][2]};
+	arma::vec axis {1,0,0};
+	auto angle = acos(arma::norm_dot(unit, axis));
 
 	// calc rotation matrix
+	// https://math.stackexchange.com/questions/4167802/get-a-rotation-matrix-which-rotates-4d-vector-to-another-4d-vector
 	arma::mat33 R = arma::eye(3,3) - ((unit + axis)/(1 + arma::dot(unit, axis)))
 					* arma::trans(unit + axis) + 2 * axis * arma::trans(unit);
 
