@@ -16,7 +16,8 @@ void printHelp()
 	std::cout
 	    << "-h: Show this message\n"
 	       "-i: Path to input file\n"
-	       "-o: Path to output file\n";
+	       "-o: Path to output file\n"
+		   "-R: Enable decimation using N/R points\n";
 	exit(1);
 }
 
@@ -49,6 +50,11 @@ void processArgs(int argc, char** argv)
 			case 'o': {
 				mainOptions.outputDirName = fs::path(std::string(optarg));
 				std::cout << "Output path set to: " << mainOptions.outputDirName << "\n";
+				break;
+			}
+			case 'R': {
+				mainOptions.dec = std::stoi(optarg);
+				std::cout << "Decimation enabled and set to: " << mainOptions.dec << "\n";
 				break;
 			}
 			case '?': // Unrecognized option

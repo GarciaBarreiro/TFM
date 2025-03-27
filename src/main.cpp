@@ -4,12 +4,13 @@
 #include <filesystem> // Only C++17 and beyond
 #include <iomanip>
 #include <iostream>
+#include <fstream>
 #include "TimeWatcher.hpp"
 #include <armadillo>	// find covariance matrix
 #include <cmath>
+#include "decimation.hpp"
 #include "Geometry/OBB.h"
 #include "Math/float3.h"
-// #include "Geometry/GeometryAll.h"
 
 namespace fs = std::filesystem;
 
@@ -48,12 +49,6 @@ int main(int argc, char* argv[])
 
 	if (!mainOptions.outputDirName.empty()) { mainOptions.outputDirName = mainOptions.outputDirName / fileName; }
 	createDirectory(mainOptions.outputDirName);
-	mainOptions.outputDirName = mainOptions.outputDirName / (fileName + ".txt");
-	FILE *fp = fopen(mainOptions.outputDirName.c_str(), "w");
-	if (!fp) {
-		printf("Error opening file %s\n", mainOptions.outputDirName.c_str());
-		exit(1);
-	}
 
 	// Print three decimals
 	std::cout << std::fixed;
@@ -61,49 +56,52 @@ int main(int argc, char* argv[])
 
 	TimeWatcher tw;
 
-	// TODO: decimate point cloud when reading
 	tw.start();
-	std::vector<Lpoint> points = readPointCloud(mainOptions.inputFile);	// TODO: decimate
+	std::vector<Lpoint> points = readPointCloud(mainOptions.inputFile);
 	tw.stop();
 	std::cout << "Number of read points: " << points.size() << "\n";
 	std::cout << "Time to read points: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 
-	// create OBB using MathGeoLib
+	// decimation (only if stated as such)
+	if (mainOptions.dec > 0)
+	{
+		tw.start();
+		// "jump" decimation
+		std::vector<float3> dec_points = jump_dec(points, mainOptions.dec);
 
-	// convert std::vector<Lpoint> to math::vec
-	std::vector<float3> points_f3;
-	for (const Lpoint& p : points) {
-		points_f3.push_back(float3(p.getX(), p.getY(), p.getZ()));
-	}
+		// create OBB using MathGeoLib
+		// sometimes prints Error: volume > 0.g in OBB.cpp:1942, but seems to work nonetheless
+		OBB obb = OBB::OptimalEnclosingOBB(dec_points.data(), dec_points.size());
+		tw.stop();
+		std::cout << "Time to compute OBB with " << dec_points.size() << " points: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 
-	// prints Error: volume > 0.g in OBB.cpp:1942, but seems to work nonetheless
-	OBB obb = OBB::OptimalEnclosingOBB(points_f3.data(), points_f3.size());
+		// one of the axis will always be (0,0,1) or (0,0,-1) (usually 0)
+		int idx = (fabs(obb.axis[0][0]) < 0.0001) ? 1 : 0;
+		arma::vec unit = {obb.axis[idx][0], obb.axis[idx][1], obb.axis[idx][2]};	// already normalised
+		arma::vec axis {1,0,0};
+		auto angle = acos(arma::norm_dot(unit, axis));
 
-	std::cout << obb.axis[0] << "\n";
-	std::cout << obb.axis[1] << "\n";
-	std::cout << obb.axis[2] << "\n";
+		// calc rotation matrix
+		// https://math.stackexchange.com/questions/4167802/get-a-rotation-matrix-which-rotates-4d-vector-to-another-4d-vector
+		arma::mat33 R = arma::eye(3,3) - ((unit + axis)/(1 + arma::dot(unit, axis)))
+						* arma::trans(unit + axis) + 2 * axis * arma::trans(unit);
 
-	// using axis[1] because for alcoy axis[0] is Z
-	// but maybe for another point cloud axis[1] is Z, so search for a way to automatize this
-	arma::vec unit = {obb.axis[1][0], obb.axis[1][1], obb.axis[1][2]};
-	arma::vec axis {1,0,0};
-	auto angle = acos(arma::norm_dot(unit, axis));
+		// apply rotation to all points in point cloud and write point cloud (txt for now)
+		std::ofstream out;
+		out.open(mainOptions.outputDirName / (fileName + ".txt"));
+		out << std::fixed;
+		out << std::setprecision(5);
+		for (const Lpoint& p : points) {
+			arma::mat point(3,1);
+			point(0) = p.getX();
+			point(1) = p.getY();
+			point(2) = p.getZ();
 
-	// calc rotation matrix
-	// https://math.stackexchange.com/questions/4167802/get-a-rotation-matrix-which-rotates-4d-vector-to-another-4d-vector
-	arma::mat33 R = arma::eye(3,3) - ((unit + axis)/(1 + arma::dot(unit, axis)))
-					* arma::trans(unit + axis) + 2 * axis * arma::trans(unit);
+			point = R * point;
 
-	// apply rotation to all points in point cloud and write point cloud (txt for now)
-	for (const Lpoint& p : points) {
-		arma::mat point(3,1);
-		point(0) = p.getX();
-		point(1) = p.getY();
-		point(2) = p.getZ();
-
-		point = R * point;
-
-		fprintf(fp, "%lf %lf %lf\n", point(0), point(1), point(2));
+			out << point(0) << " " << point(1) << " " << point(2) << "\n";
+		}
+		out.close();
 	}
 
 	// Global Octree Creation
