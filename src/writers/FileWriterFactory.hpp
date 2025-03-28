@@ -17,8 +17,7 @@ class FileWriterFactory
         switch (type)
         {
         case txt_t:
-            std::cout << "Unimplemented\n";
-            exit(-2);
+            return std::make_shared<TxtFileWriter>(path);
         case las_t:
             return std::make_shared<LasFileWriter>(path);
         default:
