@@ -45,13 +45,9 @@ int main(int argc, char* argv[])
 
 	if (!mainOptions.outputDirName.empty()) { mainOptions.outputDirName = mainOptions.outputDirName / fileName; }
 	createDirectory(mainOptions.outputDirName);
-	mainOptions.outputDirName = mainOptions.outputDirName / (fileName + ".txt");
-	FILE *fp = fopen(mainOptions.outputDirName.c_str(), "w");
-	if (!fp) {
-		printf("Error opening file %s\n", mainOptions.outputDirName.c_str());
-		exit(1);
-	}
-
+	fs::path outputTxt = mainOptions.outputDirName / (fileName + ".txt");
+	fs::path outputLas = mainOptions.outputDirName / (fileName + ".las");
+	
 	// Print three decimals
 	std::cout << std::fixed;
 	std::cout << std::setprecision(3);
@@ -96,7 +92,7 @@ int main(int argc, char* argv[])
 					* arma::trans(unit + axis) + 2 * axis * arma::trans(unit);
 
 	// apply rotation to all points in point cloud and write point cloud (txt for now)
-	for (const Lpoint& p : points) {
+	for (Lpoint& p : points) {
 		arma::mat point(3,1);
 		point(0) = p.getX();
 		point(1) = p.getY();
@@ -104,8 +100,13 @@ int main(int argc, char* argv[])
 
 		point = R * point;
 
-		fprintf(fp, "%lf %lf %lf\n", point(0), point(1), point(2));
+		p.setX(point(0));
+		p.setY(point(1));
+		p.setZ(point(2));
 	}
+
+	writePointCloud(outputTxt, points);
+	writePointCloud(outputLas, points);
 
 	// Global Octree Creation
 	/*

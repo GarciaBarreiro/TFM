@@ -1,5 +1,4 @@
 #include "LasFileWriter.hpp"
-#include "main_options.hpp"
 
 void LasFileWriter::write(std::vector<Lpoint>& points)
 {
@@ -8,10 +7,10 @@ void LasFileWriter::write(std::vector<Lpoint>& points)
 
     // init header
     LASheader lasheader;
-    lasheader.x_scale_factor = 1.0;
-    lasheader.y_scale_factor = 1.0;
-    lasheader.z_scale_factor = 1.0;
-    lasheader.x_offset = 0.0;
+    lasheader.x_scale_factor = 0.01;
+    lasheader.y_scale_factor = 0.01;
+    lasheader.z_scale_factor = 0.01;
+    lasheader.x_offset = 0.0;   // could maybe be calculated
     lasheader.y_offset = 0.0;
     lasheader.z_offset = 0.0;
     lasheader.point_data_format = 2;    // the one used when reading
@@ -31,9 +30,9 @@ void LasFileWriter::write(std::vector<Lpoint>& points)
 
     for (const Lpoint& p : points)
     {
-        laspoint.set_X(p.getX());
-        laspoint.set_Y(p.getY());
-        laspoint.set_Z(p.getZ());
+        laspoint.set_X(p.getX() * 100);
+        laspoint.set_Y(p.getY() * 100);
+        laspoint.set_Z(p.getZ() * 100);
         laspoint.set_intensity(p.getI());
         laspoint.set_return_number(p.rn());
         laspoint.set_number_of_returns(p.nor());

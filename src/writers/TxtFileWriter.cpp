@@ -6,7 +6,7 @@ void TxtFileWriter::write(std::vector<Lpoint>& points)
     // TODO: more than 3 columns
     std::ofstream out;
     out.open(path);
-    out << std::fixed << std::setprecision(5);
+    out << std::fixed << std::setprecision(2);
 
     for (const Lpoint& p : points)
     {
