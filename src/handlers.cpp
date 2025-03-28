@@ -5,6 +5,7 @@
 #include "handlers.hpp"
 #include "FileReaderFactory.hpp"
 #include "TxtFileReader.hpp"
+#include "FileWriterFactory.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -21,6 +22,7 @@ void createDirectory(const fs::path& dirName)
 	if (!fs::is_directory(dirName)) { fs::create_directories(dirName); }
 }
 
+// TODO: move
 void writePoints(fs::path& filename, std::vector<Lpoint>& points)
 {
 	std::ofstream f(filename);
@@ -39,7 +41,7 @@ std::vector<Lpoint> readPointCloud(const fs::path& filename)
 	// Get Input File extension
 	auto fExt = filename.extension();
 
-	FileReader_t readerType = chooseReaderType(fExt);
+	File_t readerType = chooseReaderType(fExt);
 
 	// asdf
 	if (readerType == err_t)
@@ -55,4 +57,22 @@ std::vector<Lpoint> readPointCloud(const fs::path& filename)
 	std::cout << "Point cloud size: " << points.size() << "\n";
 
 	return points;
+}
+
+void writePointCloud(const fs::path& fileName, std::vector<Lpoint>& points)
+{
+	// get output file extension
+	auto fExt = fileName.extension();
+
+	File_t writerType = chooseWriterType(fExt);
+
+	if (writerType == err_t)
+	{
+		std::cout << "Uncompatible file format\n";
+		exit(-1);
+	}
+
+	std::shared_ptr<FileWriter> fileWriter = FileWriterFactory::makeWriter(writerType, fileName);
+
+	fileWriter->write(points);
 }
