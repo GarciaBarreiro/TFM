@@ -8,7 +8,6 @@ std::vector<float3> jump_dec(const std::vector<Lpoint>& points, int jump)
     std::vector<float3> dec;
     for (int i = 0; i < points.size(); i += jump)
     {
-		// dec.push_back(float3(points[i].getX(), points[i].getY(), points[i].getZ()));
         dec.push_back(float3(points[i].getX(), points[i].getY(), 0));
 	}
     return dec;
@@ -27,7 +26,6 @@ std::vector<float3> random_dec(const std::vector<Lpoint>& points, int n)
     for (int i = 0; i < n; i++)
     {
         Lpoint p = points[indices[i]];
-        // dec.push_back(float3(p.getX(), p.getY(), p.getZ()));
         dec.push_back(float3(p.getX(), p.getY(), 0));
     }
     return dec;
