@@ -4,7 +4,7 @@
 
 #include "FileReaderFactory.hpp"
 
-FileReader_t chooseReaderType(const std::string& fExt)
+File_t chooseReaderType(const std::string& fExt)
 {
 	if (fExt == ".las" || fExt == ".laz") return las_t;
 	if (fExt == ".txt" || fExt == ".xyz") return txt_t;

@@ -4,22 +4,14 @@
 
 #pragma once
 
+#include "FileType.hpp"
 #include "LasFileReader.hpp"
 #include "TxtFileReader.hpp"
 #include <filesystem>
 
 namespace fs = std::filesystem;
 
-// ** Types of readers ** //
-
-enum FileReader_t // Enumeration of the different types of FileReader
-{
-	txt_t, // txt type
-	las_t, // las type
-	err_t  // error type (no compatible extension were found)
-};
-
-FileReader_t chooseReaderType(const std::string& fExt);
+File_t chooseReaderType(const std::string& fExt);
 
 /**
  * @author Miguel Yermo
@@ -35,7 +27,7 @@ class FileReaderFactory
 	 * @param numCols Number of columns of the txt file. Default = 0
 	 * @return
 	 */
-	static std::shared_ptr<FileReader> makeReader(FileReader_t type, const fs::path& path)
+	static std::shared_ptr<FileReader> makeReader(File_t type, const fs::path& path)
 	{
 		switch (type)
 		{
