@@ -4,9 +4,6 @@
 
 #include "main_options.hpp"
 
-#include <cmath>
-#include <filesystem>
-
 namespace fs = std::filesystem;
 
 main_options mainOptions{};
@@ -16,8 +13,8 @@ void printHelp()
 	std::cout
 	    << "-h: Show this message\n"
 	       "-i: Path to input file\n"
-	       "-o: Path to output file\n"
-		   "-R: Enable decimation using N/R points\n";
+	       "-o: Path to output file (directory)\n"
+		   "-R: Enable decimation using (total points)/R points\n";
 	exit(1);
 }
 

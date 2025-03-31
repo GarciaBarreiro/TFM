@@ -4,13 +4,7 @@
 
 #include "handlers.hpp"
 #include "FileReaderFactory.hpp"
-#include "TxtFileReader.hpp"
 #include "FileWriterFactory.hpp"
-#include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <lasreader.hpp>
-#include <random>
 
 void createDirectory(const fs::path& dirName)
 /**
@@ -20,20 +14,6 @@ void createDirectory(const fs::path& dirName)
  */
 {
 	if (!fs::is_directory(dirName)) { fs::create_directories(dirName); }
-}
-
-// TODO: move
-void writePoints(fs::path& filename, std::vector<Lpoint>& points)
-{
-	std::ofstream f(filename);
-	f << std::fixed << std::setprecision(2);
-
-	for (Lpoint& p : points)
-	{
-		f << p << "\n";
-	}
-
-	f.close();
 }
 
 std::vector<Lpoint> readPointCloud(const fs::path& filename)
