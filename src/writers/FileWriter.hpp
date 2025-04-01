@@ -24,4 +24,5 @@ class FileWriter
 	FileWriter(const fs::path& path) : path(path){};
 	virtual ~FileWriter(){}; // Every specialization of this class must manage its own destruction
     virtual void write(std::vector<Lpoint>& points) = 0;
+	virtual void writeDescriptors(std::vector<Lpoint>& points) = 0;
 };

@@ -15,3 +15,8 @@ void TxtFileWriter::write(std::vector<Lpoint>& points)
 
     out.close();
 }
+
+void TxtFileWriter::writeDescriptors(std::vector<Lpoint>& points)
+{
+    // TODO
+}
