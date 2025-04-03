@@ -2,7 +2,7 @@
 # --------------------- #
 
 # Setup compiler flags
-set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG -w")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG -w -lblas")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
 # CXX Standard
