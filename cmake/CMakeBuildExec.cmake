@@ -38,3 +38,13 @@ target_link_libraries(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
         PRIVATE
         ${MATHGEOLIB_LIBRARIES})
+
+if (TARGET range-v3::range-v3)
+    target_link_libraries(${PROJECT_NAME}
+            PRIVATE
+            range-v3::range-v3)
+else ()
+    target_link_libraries(${PROJECT_NAME}
+            PRIVATE
+            ${RANGE-V3_LIBRARIES})
+endif ()
