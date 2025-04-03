@@ -277,5 +277,20 @@ namespace chs
 
 			return bytes;
 		}
+
+		[[nodiscard]] inline auto get_num_cells() const
+		{
+			return cells_.size();
+		}
+
+		[[nodiscard]] inline auto get_empty_cells() const
+		{
+			int empty = 0;
+			for (const auto & cell : cells_)
+			{
+				if (!cell.size()) empty++;
+			}
+			return empty;
+		}
 	};
 } // namespace chs

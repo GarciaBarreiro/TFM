@@ -62,6 +62,8 @@ int main(int argc, char* argv[])
 	const auto mb    = bytes / (1024.0 * 1024.0);
 	std::cout << "Estimated mem. footprint: " << map.mem_footprint() << " Bytes (" << mb << "MB)" << '\n';
 
+	std::cout << "Number of cells: " << map.get_num_cells() << ", of which, empty: " << map.get_empty_cells() << "\n";
+
 	// neigh search
 	const float rad = 2.5;	// search radius
 	size_t avg = 0;
