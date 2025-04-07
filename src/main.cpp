@@ -47,55 +47,57 @@ int main(int argc, char* argv[])
 		std::cout << "Time to write point cloud: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 	}
 
-	// cheesemap
-	std::cout << "Building global cheesemap..." << std::endl;
-	tw.start();
-	const auto flags = chs::flags::build::PARALLEL | chs::flags::build::SHRINK_TO_FIT;
-	auto map = chs::Dense<Lpoint, 2>(points, 1.0, flags);
-	tw.stop();
-	std::cout << "Time to build global cheesemap: " << tw.getElapsedDecimalSeconds() << " seconds\n";
-
-	const auto bytes = map.mem_footprint();
-	const auto mb    = bytes / (1024.0 * 1024.0);
-	std::cout << "Estimated mem. footprint: " << map.mem_footprint() << " Bytes (" << mb << "MB)" << '\n';
-
-	std::cout << "Number of cells: " << map.get_num_cells() << ", of which, empty: " << map.get_empty_cells() << "\n";
-
-	// neigh search
-	const float rad = 2.5;	// search radius
-	size_t avg = 0;
-	tw.start();
-	#pragma omp parallel for reduction(+:avg)
-	for (const auto& p : points)
+	if (mainOptions.radius)
 	{
-		chs::kernels::Sphere<3> search(p, rad);
-		const auto results_map = map.query(search);	// vector with neighs of P inside a sphere of radius rads
-		avg += results_map.size();
-	}
-	tw.stop();
-	std::cout << "Average neighbors: " << static_cast<double>(avg) / static_cast<double>(points.size()) <<
-				" found in " << tw.getElapsedDecimalSeconds() << " seconds\n";
+		// cheesemap
+		std::cout << "Building global cheesemap..." << std::endl;
+		tw.start();
+		const auto flags = chs::flags::build::PARALLEL | chs::flags::build::SHRINK_TO_FIT;
+		auto map = chs::Dense<Lpoint, 2>(points, mainOptions.cellSize, flags);
+		tw.stop();
+		std::cout << "Time to build global cheesemap: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 
-	// Global Octree Creation
-	/*
-	std::cout << "Building global octree..." << std::endl;
-	tw.start();
-	Octree gOctree(points);
-	tw.stop();
-	std::cout << "Time to build global octree: " << tw.getElapsedDecimalSeconds() << " seconds\n";
-	
-	avg = 0;
-	tw.start();
-	#pragma omp parallel for reduction(+:avg)
-	for (const auto& p: points)
-	{
-		const auto neigh = gOctree.searchNeighbors<Kernel_t::sphere>(p, rad);
-		avg += neigh.size();
-	}
-	tw.stop();
-	std::cout << "Average neighbors: " << static_cast<double>(avg) / static_cast<double>(points.size()) <<
-				" found in " << tw.getElapsedDecimalSeconds() << " seconds\n";
-	*/
+		const auto bytes = map.mem_footprint();
+		const auto mb    = bytes / (1024.0 * 1024.0);
+		std::cout << "Estimated mem. footprint: " << map.mem_footprint() << " Bytes (" << mb << "MB)" << '\n';
 
+		std::cout << "Number of cells: " << map.get_num_cells() << ", of which, empty: " << map.get_empty_cells() << "\n";
+
+		// neigh search
+		const float rad = mainOptions.radius;	// search radius
+		size_t avg = 0;
+		tw.start();
+		#pragma omp parallel for reduction(+:avg)
+		for (const auto& p : points)
+		{
+			chs::kernels::Sphere<3> search(p, rad);
+			const auto results_map = map.query(search);	// vector with neighs of P inside a sphere of radius rads
+			avg += results_map.size();
+		}
+		tw.stop();
+		std::cout << "Average neighbors: " << static_cast<double>(avg) / static_cast<double>(points.size()) <<
+					" found in " << tw.getElapsedDecimalSeconds() << " seconds\n";
+
+		// Global Octree Creation
+		/*
+		std::cout << "Building global octree..." << std::endl;
+		tw.start();
+		Octree gOctree(points);
+		tw.stop();
+		std::cout << "Time to build global octree: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+
+		avg = 0;
+		tw.start();
+		#pragma omp parallel for reduction(+:avg)
+		for (const auto& p: points)
+		{
+			const auto neigh = gOctree.searchNeighbors<Kernel_t::sphere>(p, rad);
+			avg += neigh.size();
+		}
+		tw.stop();
+		std::cout << "Average neighbors: " << static_cast<double>(avg) / static_cast<double>(points.size()) <<
+					" found in " << tw.getElapsedDecimalSeconds() << " seconds\n";
+		*/
+	}
 	return EXIT_SUCCESS;
 }
