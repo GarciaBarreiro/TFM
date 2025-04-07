@@ -14,7 +14,9 @@ void printHelp()
 	    << "-h: Show this message\n"
 	       "-i: Path to input file\n"
 	       "-o: Path to output file (directory)\n"
-		   "-R: Enable decimation using (total points)/R points\n";
+		   "-r: Search radius (default: 0)\n"
+		   "-R: Enable decimation using (total points)/R points\n"
+		   "-s: Cheesemap cell size (default: 1.0)\n";
 	exit(1);
 }
 
@@ -49,9 +51,19 @@ void processArgs(int argc, char** argv)
 				std::cout << "Output path set to: " << mainOptions.outputDirName << "\n";
 				break;
 			}
+			case 'r': {
+				mainOptions.radius = std::stof(optarg);
+				std::cout << "Search radius set to: " << mainOptions.radius << "\n";
+				break;
+			}
 			case 'R': {
 				mainOptions.dec = std::stoi(optarg);
 				std::cout << "Decimation enabled and set to: " << mainOptions.dec << "\n";
+				break;
+			}
+			case 's': {
+				mainOptions.cellSize = std::stof(optarg);
+				std::cout << "Cheesemap cell size set to: " << mainOptions.cellSize << "\n";
 				break;
 			}
 			case '?': // Unrecognized option
