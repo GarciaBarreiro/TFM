@@ -88,6 +88,19 @@ class Lpoint : public Point
 	void                         setEigenvalues(const std::vector<double>& eigenvalues) {}
 	double                       getI() const { return I_; }
 
+	// TODO: maybe move/add setters and getters
+	// Features
+	int 					nNeigh{};		// number of neighbors
+	double 					sum{};			// sum of eigenvalues
+	double 					omnivar{};		// omnivariance
+	double 					eigenen{};		// eigenentropy
+	double 					linear{};		// linearity
+	double 					planar{};		// planarity
+	double 					spheric{};		// sphericity
+	double 					curvChange{};	// change of curvature
+	std::array<double, 2> 	vert{};			// verticality (x2)
+	std::array<double, 6> 	absMom{};		// absolute moment (x6)
+	std::array<double, 2> 	vertMom{};		// vertical moment (x2)
 };
 
 #endif //RULE_BASED_CLASSIFIER_CPP_LPOINT_HPP
