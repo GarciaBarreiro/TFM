@@ -50,11 +50,8 @@ int main(int argc, char* argv[])
 	// cheesemap
 	std::cout << "Building global cheesemap..." << std::endl;
 	tw.start();
-	std::vector<chs::Point> chspoints;	// needed to convert Lpoints to chs::Point
-	for (const Lpoint& p : points) { chspoints.push_back({p.getX(), p.getY(), p.getZ()}); }
-
 	const auto flags = chs::flags::build::PARALLEL | chs::flags::build::SHRINK_TO_FIT;
-	auto map = chs::Dense<chs::Point, 2>(chspoints, 1.0, flags);
+	auto map = chs::Dense<Lpoint, 2>(points, 1.0, flags);
 	tw.stop();
 	std::cout << "Time to build global cheesemap: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 
@@ -69,14 +66,14 @@ int main(int argc, char* argv[])
 	size_t avg = 0;
 	tw.start();
 	#pragma omp parallel for reduction(+:avg)
-	for (const auto& p : chspoints)
+	for (const auto& p : points)
 	{
 		chs::kernels::Sphere<3> search(p, rad);
 		const auto results_map = map.query(search);	// vector with neighs of P inside a sphere of radius rads
 		avg += results_map.size();
 	}
 	tw.stop();
-	std::cout << "Average neighbors: " << static_cast<double>(avg) / static_cast<double>(chspoints.size()) <<
+	std::cout << "Average neighbors: " << static_cast<double>(avg) / static_cast<double>(points.size()) <<
 				" found in " << tw.getElapsedDecimalSeconds() << " seconds\n";
 
 	// Global Octree Creation
