@@ -37,4 +37,6 @@ std::vector<Lpoint> readPointCloud(const fs::path& fileName);
 
 void writePointCloud(const fs::path& fileName, std::vector<Lpoint>& points);
 
+void writePointCloudDescriptors(const fs::path& fileName, std::vector<Lpoint>& points);
+
 #endif //CPP_HANDLERS_H

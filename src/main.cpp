@@ -71,20 +71,24 @@ int main(int argc, char* argv[])
 
 		// neigh search
 		const float rad = mainOptions.radius;	// search radius
-		size_t avg = 0;
 		tw.start();
-		#pragma omp parallel for reduction(+:avg)
+		#pragma omp parallel for
 		for (auto& p : points)
 		{
 			chs::kernels::Sphere<3> search(p, rad);
 			const auto results_map = map.query(search);	// vector with neighs of P inside a sphere of radius rads
 			std::vector<Lpoint> neigh{};	// quick conversion to Lpoint vector
-			for (auto m : results_map) { neigh.push_back(Lpoint(m[0][0], m[0][1], m[0][1])); }
+			for (auto m : results_map) { neigh.push_back(Lpoint(m[0][0], m[0][1], m[0][2])); }
 			features(neigh, p);
 		}
 		tw.stop();
-		std::cout << "Average neighbors: " << static_cast<double>(avg) / static_cast<double>(points.size()) <<
-					" found in " << tw.getElapsedDecimalSeconds() << " seconds\n";
+		std::cout << "Time to calculate descriptors: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+
+		fs::path outputFile = mainOptions.outputDirName / (fileName + "_feat.las");
+		tw.start();
+		writePointCloudDescriptors(outputFile, points);
+		tw.stop();
+		std::cout << "Time to write point cloud descriptors: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 
 		// Global Octree Creation
 		/*

@@ -56,3 +56,21 @@ void writePointCloud(const fs::path& fileName, std::vector<Lpoint>& points)
 
 	fileWriter->write(points);
 }
+
+void writePointCloudDescriptors(const fs::path& fileName, std::vector<Lpoint>& points)
+{
+	// get output file extension
+	auto fExt = fileName.extension();
+
+	File_t writerType = chooseWriterType(fExt);
+
+	if (writerType == err_t)
+	{
+		std::cout << "Uncompatible file format\n";
+		exit(-1);
+	}
+
+	std::shared_ptr<FileWriter> fileWriter = FileWriterFactory::makeWriter(writerType, fileName);
+
+	fileWriter->writeDescriptors(points);
+}

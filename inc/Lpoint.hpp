@@ -90,7 +90,7 @@ class Lpoint : public Point
 
 	// TODO: maybe move/add setters and getters
 	// Features
-	int 					nNeigh{};		// number of neighbors
+	unsigned int			nNeigh{};		// number of neighbors
 	double 					sum{};			// sum of eigenvalues
 	double 					omnivar{};		// omnivariance
 	double 					eigenen{};		// eigenentropy
