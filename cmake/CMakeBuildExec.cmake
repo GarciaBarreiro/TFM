@@ -11,6 +11,12 @@ if (TARGET OpenMP::OpenMP_CXX)
             OpenMP::OpenMP_CXX)
 endif ()
 
+if (TARGET MPI::MPI_CXX)
+    target_link_libraries(${PROJECT_NAME}
+            PRIVATE
+            MPI::MPI_CXX)
+endif()
+
 if (TARGET armadillo::armadillo AND
         ARMADILLO_VERSION_MAJOR GREATER 13)
     target_link_libraries(${PROJECT_NAME}
