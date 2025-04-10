@@ -63,12 +63,12 @@ void LasFileWriter::write(std::vector<Lpoint>& points)
     laswriter->close();
 }
 
-void _addAttribute(I32 type, const char *name, LASheader& lasheader, I32& index)
+I32 _addAttribute(LASheader& lasheader, I32 type, F64 scale, const char *name)
 {
     LASattribute attribute(type, name, NULL);
-    attribute.set_scale(1);
+    attribute.set_scale(scale);
     attribute.set_offset(0);
-    index = lasheader.add_attribute(attribute);
+    return lasheader.add_attribute(attribute);
 }
 
 void LasFileWriter::writeDescriptors(std::vector<Lpoint>& points)
@@ -82,24 +82,24 @@ void LasFileWriter::writeDescriptors(std::vector<Lpoint>& points)
     // for specifying type, LASTools seems to use the values found on the LAS spec - 1
     // so if in the spec the value for double is 10, here it is 9
     std::array<I32, 18> indices{};
-    _addAttribute(4, "number of neighbors", lasheader, indices[0]); // unsigned int
-    _addAttribute(9, "sum of eigenvalues", lasheader, indices[1]);  // double
-    _addAttribute(9, "omnivariance", lasheader, indices[2]);
-    _addAttribute(9, "eigenentropy", lasheader, indices[3]);
-    _addAttribute(9, "linearity", lasheader, indices[4]);
-    _addAttribute(9, "planarity", lasheader, indices[5]);
-    _addAttribute(9, "sphericity", lasheader, indices[6]);
-    _addAttribute(9, "change of curvature", lasheader, indices[7]);
-    _addAttribute(9, "verticality 1", lasheader, indices[8]);
-    _addAttribute(9, "verticality 2", lasheader, indices[9]);
-    _addAttribute(9, "absolute moment 1", lasheader, indices[10]);
-    _addAttribute(9, "absolute moment 2", lasheader, indices[11]);
-    _addAttribute(9, "absolute moment 3", lasheader, indices[12]);
-    _addAttribute(9, "absolute moment 4", lasheader, indices[13]);
-    _addAttribute(9, "absolute moment 5", lasheader, indices[14]);
-    _addAttribute(9, "absolute moment 6", lasheader, indices[15]);
-    _addAttribute(9, "vertical moment 1", lasheader, indices[16]);
-    _addAttribute(9, "vertical moment 2", lasheader, indices[17]);
+    indices[0]  = _addAttribute(lasheader, 4,     1, "number of neighbors");    // unsigned int
+    indices[1]  = _addAttribute(lasheader, 4, 0.001, "sum of eigenvalues");
+    indices[2]  = _addAttribute(lasheader, 2, 0.001, "omnivariance");           // unsigned short
+    indices[3]  = _addAttribute(lasheader, 5, 0.001, "eigenentropy");           // int
+    indices[4]  = _addAttribute(lasheader, 3, 0.001, "linearity");              // short
+    indices[5]  = _addAttribute(lasheader, 3, 0.001, "planarity");
+    indices[6]  = _addAttribute(lasheader, 2, 0.001, "sphericity");             // unsigned short
+    indices[7]  = _addAttribute(lasheader, 2, 0.001, "change of curvature");
+    indices[8]  = _addAttribute(lasheader, 2, 0.001, "verticality [0]");
+    indices[9]  = _addAttribute(lasheader, 2, 0.001, "verticality [1]");
+    indices[10] = _addAttribute(lasheader, 2, 0.001, "absolute moment [0]");
+    indices[11] = _addAttribute(lasheader, 4, 0.001, "absolute moment [1]");    // unsigned int
+    indices[12] = _addAttribute(lasheader, 2, 0.001, "absolute moment [2]");    // unsigned short
+    indices[13] = _addAttribute(lasheader, 4, 0.001, "absolute moment [3]");    // unsigned int
+    indices[14] = _addAttribute(lasheader, 2, 0.001, "absolute moment [4]");    // unsigned short
+    indices[15] = _addAttribute(lasheader, 4, 0.001, "absolute moment [5]");    // unsigned int
+    indices[16] = _addAttribute(lasheader, 5, 0.001, "vertical moment [0]");    // int
+    indices[17] = _addAttribute(lasheader, 5, 0.001, "vertical moment [1]");
 
     lasheader.update_extra_bytes_vlr();
     lasheader.point_data_record_length += lasheader.get_attributes_size();
@@ -142,23 +142,24 @@ void LasFileWriter::writeDescriptors(std::vector<Lpoint>& points)
         laspoint.set_B(p.getB());
 
         laspoint.set_attribute(att_starts[0], p.nNeigh);
-        laspoint.set_attribute(att_starts[1], p.sum);
-        laspoint.set_attribute(att_starts[2], p.omnivar);
-        laspoint.set_attribute(att_starts[3], p.eigenen);
-        laspoint.set_attribute(att_starts[4], p.linear);
-        laspoint.set_attribute(att_starts[5], p.planar);
-        laspoint.set_attribute(att_starts[6], p.spheric);
-        laspoint.set_attribute(att_starts[7], p.curvChange);
-        laspoint.set_attribute(att_starts[8], p.vert[0]);
-        laspoint.set_attribute(att_starts[9], p.vert[1]);
-        laspoint.set_attribute(att_starts[10], p.absMom[0]);
-        laspoint.set_attribute(att_starts[11], p.absMom[1]);
-        laspoint.set_attribute(att_starts[12], p.absMom[2]);
-        laspoint.set_attribute(att_starts[13], p.absMom[3]);
-        laspoint.set_attribute(att_starts[14], p.absMom[4]);
-        laspoint.set_attribute(att_starts[15], p.absMom[5]);
-        laspoint.set_attribute(att_starts[16], p.vertMom[0]);
-        laspoint.set_attribute(att_starts[17], p.vertMom[1]);
+        // check if NaN, else casting results because if not, writes noise to all attributes
+        laspoint.set_attribute(att_starts[1], std::isnan(p.sum) ? 0 : U32_QUANTIZE(1000 * p.sum));
+        laspoint.set_attribute(att_starts[2], std::isnan(p.omnivar) ? 0 : U16_QUANTIZE(1000 * p.omnivar));
+        laspoint.set_attribute(att_starts[3], std::isnan(p.eigenen) ? 0 : I32_QUANTIZE(1000 * p.eigenen));
+        laspoint.set_attribute(att_starts[4], std::isnan(p.linear) ? 0 : I16_QUANTIZE(1000 * p.linear));
+        laspoint.set_attribute(att_starts[5], std::isnan(p.planar) ? 0 : I16_QUANTIZE(1000 * p.planar));
+        laspoint.set_attribute(att_starts[6], std::isnan(p.spheric) ? 0 : U16_QUANTIZE(1000 * p.spheric));
+        laspoint.set_attribute(att_starts[7], std::isnan(p.curvChange) ? 0 : U16_QUANTIZE(1000 * p.curvChange));
+        laspoint.set_attribute(att_starts[8], std::isnan(p.vert[0]) ? 0 : U16_QUANTIZE(1000 * p.vert[0]));
+        laspoint.set_attribute(att_starts[9], std::isnan(p.vert[1]) ? 0 : U16_QUANTIZE(1000 * p.vert[1]));
+        laspoint.set_attribute(att_starts[10], std::isnan(p.absMom[0]) ? 0 : U16_QUANTIZE(1000 * p.absMom[0]));
+        laspoint.set_attribute(att_starts[11], std::isnan(p.absMom[1]) ? 0 : U32_QUANTIZE(1000 * p.absMom[1]));
+        laspoint.set_attribute(att_starts[12], std::isnan(p.absMom[2]) ? 0 : U16_QUANTIZE(1000 * p.absMom[2]));
+        laspoint.set_attribute(att_starts[13], std::isnan(p.absMom[3]) ? 0 : U32_QUANTIZE(1000 * p.absMom[3]));
+        laspoint.set_attribute(att_starts[14], std::isnan(p.absMom[4]) ? 0 : U16_QUANTIZE(1000 * p.absMom[4]));
+        laspoint.set_attribute(att_starts[15], std::isnan(p.absMom[5]) ? 0 : U32_QUANTIZE(1000 * p.absMom[5]));
+        laspoint.set_attribute(att_starts[16], std::isnan(p.vertMom[0]) ? 0 : I32_QUANTIZE(1000 * p.vertMom[0]));
+        laspoint.set_attribute(att_starts[17], std::isnan(p.vertMom[1]) ? 0 : I32_QUANTIZE(1000 * p.vertMom[1]));
         
         laswriter->write_point(&laspoint);
         laswriter->update_inventory(&laspoint);
