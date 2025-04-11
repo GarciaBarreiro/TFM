@@ -39,6 +39,45 @@ std::vector<Lpoint> readPointCloud(const fs::path& filename)
 	return points;
 }
 
+std::vector<Lpoint> readPointCloudOverlap(const fs::path& filename, const Box& box, const Box& overlap)
+{
+	// Get Input File extension
+	auto fExt = filename.extension();
+
+	File_t readerType = chooseReaderType(fExt);
+
+	// asdf
+	if (readerType == err_t)
+	{
+		std::cout << "Uncompatible file format\n";
+		exit(-1);
+	}
+
+	std::shared_ptr<FileReader> fileReader = FileReaderFactory::makeReader(readerType, filename);
+
+	std::vector<Lpoint> points = fileReader->readOverlap(box, overlap);
+
+	return points;
+}
+
+std::pair<Point, Point> readBoundingBox(const fs::path& filename)
+{
+	// get input file extension
+	auto fExt = filename.extension();
+
+	File_t readerType = chooseReaderType(fExt);
+
+	if (readerType == err_t || readerType == txt_t)
+	{
+		std::cout << "Uncompatible file format\n";
+		exit(-1);
+	}
+
+	std::shared_ptr<FileReader> fileReader = FileReaderFactory::makeReader(readerType, filename);
+
+	return fileReader->readBoundingBox();
+}
+
 void writePointCloud(const fs::path& fileName, std::vector<Lpoint>& points)
 {
 	// get output file extension

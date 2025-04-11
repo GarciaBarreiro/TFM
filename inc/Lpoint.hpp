@@ -101,6 +101,8 @@ class Lpoint : public Point
 	std::array<double, 2> 	vert{};			// verticality (x2)
 	std::array<double, 6> 	absMom{};		// absolute moment (x6)
 	std::array<double, 2> 	vertMom{};		// vertical moment (x2)
+
+	bool					overlap{false};	// true if points exists in another partition
 };
 
 #endif //RULE_BASED_CLASSIFIER_CPP_LPOINT_HPP

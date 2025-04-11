@@ -24,6 +24,7 @@
 #include <filesystem> // File extensions
 #include <string>
 #include <vector>
+#include "Box.hpp"
 
 namespace fs = std::filesystem;
 
@@ -33,7 +34,11 @@ unsigned int getNumberOfCols(const fs::path& filePath);
 
 void createDirectory(const fs::path& dirname);
 
-std::vector<Lpoint> readPointCloud(const fs::path& fileName);
+std::vector<Lpoint> readPointCloud(const fs::path& filename);
+
+std::vector<Lpoint> readPointCloudOverlap(const fs::path& filename, const Box& box, const Box& overlap);
+
+std::pair<Point, Point> readBoundingBox(const fs::path& filename);
 
 void writePointCloud(const fs::path& fileName, std::vector<Lpoint>& points);
 

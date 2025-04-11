@@ -10,6 +10,7 @@ void TxtFileWriter::write(std::vector<Lpoint>& points)
 
     for (const Lpoint& p : points)
     {
+        if (p.overlap) continue;
         out << p.getX() << " " << p.getY() << " " << p.getZ() << "\n";
     }
 
@@ -31,6 +32,7 @@ void TxtFileWriter::writeDescriptors(std::vector<Lpoint>& points)
 
     for (const Lpoint& p : points)
     {
+        if (p.overlap) continue;
         out << p.getX() << " " << p.getY() << " " << p.getZ() << " "
         << p.nNeigh << " " << p.omnivar << " " << p.eigenen << " "
         << p.linear << " " << p.planar << " " << p.spheric << " "

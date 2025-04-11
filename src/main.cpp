@@ -9,6 +9,9 @@
 #include <cmath>
 #include "decimation.hpp"
 #include "cheesemap/cheesemap.hpp"
+#include <mpi.h>
+#include "partitions.hpp"
+#include "Box.hpp"
 
 namespace fs = std::filesystem;
 
@@ -35,26 +38,60 @@ int main(int argc, char* argv[])
 
 	TimeWatcher tw;
 
-	tw.start();
-	std::vector<Lpoint> points = readPointCloud(mainOptions.inputFile);
-	tw.stop();
-	std::cout << "Number of read points: " << points.size() << "\n";
-	std::cout << "Time to read points: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+	// init MPI
+	int rank = 0, npes = 1;
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MPI_COMM_WORLD, &npes);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	// decimation (only if stated as such)
-	if (mainOptions.dec > 0)
+	std::vector<Lpoint> points;
+	std::vector<std::pair<Point, Point>> boxes;
+
+	if (rank == 0)
 	{
-		decimateAndRotate(points, mainOptions.dec);
+		// decimation (only if stated as such, easier doing it on 1 node)
+		if (mainOptions.dec > 0)
+		{
+			tw.start();
+			points = readPointCloud(inputFile);
+			tw.stop();
+			std::cout << "Number of read points: " << points.size() << "\n";
+			std::cout << "Time to read points: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+			decimateAndRotate(points, mainOptions.dec);
 
-		fs::path outputFile = mainOptions.outputDirName / (fileName + ".las");
-		tw.start();
-		writePointCloud(outputFile, points);
-		tw.stop();
-		std::cout << "Time to write point cloud: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+			string ext = (mainOptions.zip) ? ".laz" : ".las";
+			fs::path outputFile = mainOptions.outputDirName / (fileName + ext);
+			tw.start();
+			writePointCloud(outputFile, points);
+			tw.stop();
+			std::cout << "Time to write point cloud: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+
+			points.clear();
+
+			inputFile = outputFile;
+		}
+
+		// get point cloud bounding box, split it
+		if (mainOptions.radius > 0)
+		{
+			auto minmax = readBoundingBox(inputFile);
+			boxes = naivePart(minmax, npes);
+		}
 	}
 
-	if (mainOptions.radius)
+	if (mainOptions.radius > 0)
 	{
+		// create MPI_Datatype and send each process its own box
+		std::pair<Point, Point> minmax;
+		MPI_Scatter(boxes.data(), sizeof(minmax), MPI_BYTE, &minmax, sizeof(minmax), MPI_BYTE, 0, MPI_COMM_WORLD);
+		
+		const float rad = mainOptions.radius;	// search radius
+		Box b(minmax);
+		Box overlap(std::pair<Point, Point>(minmax.first - rad, minmax.second + rad));
+
+		// read points
+		tw.start();
+		points = readPointCloudOverlap(inputFile, b, overlap);
 		// cheesemap
 		std::cout << "Building global cheesemap..." << std::endl;
 		tw.start();
@@ -70,11 +107,11 @@ int main(int argc, char* argv[])
 		std::cout << "Number of cells: " << map.get_num_cells() << ", of which, empty: " << map.get_empty_cells() << "\n";
 
 		// neigh search
-		const float rad = mainOptions.radius;	// search radius
 		tw.start();
 		#pragma omp parallel for
 		for (auto& p : points)
 		{
+			if (p.overlap) continue;
 			chs::kernels::Sphere<3> search(p, rad);
 			const auto results_map = map.query(search);	// vector with neighs of P inside a sphere of radius rads
 			std::vector<Lpoint> neigh{};	// quick conversion to Lpoint vector
@@ -84,7 +121,8 @@ int main(int argc, char* argv[])
 		tw.stop();
 		std::cout << "Time to calculate descriptors: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 
-		fs::path outputFile = mainOptions.outputDirName / (fileName + "_feat.las");
+		string ext = (mainOptions.zip) ? ".laz" : ".las";
+		fs::path outputFile = mainOptions.outputDirName / (fileName + "_feat" + std::to_string(rank) + ext);
 		tw.start();
 		writePointCloudDescriptors(outputFile, points);
 		tw.stop();
@@ -111,6 +149,9 @@ int main(int argc, char* argv[])
 					" found in " << tw.getElapsedDecimalSeconds() << " seconds\n";
 		*/
 	}
+
+	MPI_Finalize();
+
 	return EXIT_SUCCESS;
 }
 

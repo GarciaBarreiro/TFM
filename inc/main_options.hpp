@@ -34,6 +34,7 @@ class main_options
 	int			  dec{0};
 	float	  	  cellSize{1.0};
 	float		  radius{0};
+	bool		  zip{false};
 };
 
 extern main_options mainOptions;
@@ -44,7 +45,7 @@ enum LongOptions : int
 };
 
 // Define short options
-const char* const short_opts = "h:i:o:R:s:r:";
+const char* const short_opts = "h:i:o:R:s:r:z";
 
 // Define long options
 const option long_opts[] = {

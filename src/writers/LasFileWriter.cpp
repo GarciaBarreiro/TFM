@@ -36,6 +36,7 @@ void LasFileWriter::write(std::vector<Lpoint>& points)
 
     for (const Lpoint& p : points)
     {
+        if (p.overlap) continue;
         laspoint.set_X(p.getX() * 100);
         laspoint.set_Y(p.getY() * 100);
         laspoint.set_Z(p.getZ() * 100);
@@ -125,6 +126,7 @@ void LasFileWriter::writeDescriptors(std::vector<Lpoint>& points)
 
     for (const Lpoint& p : points)
     {
+        if (p.overlap) continue;
         laspoint.set_X(p.getX() * 100);
         laspoint.set_Y(p.getY() * 100);
         laspoint.set_Z(p.getZ() * 100);

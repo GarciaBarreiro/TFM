@@ -115,3 +115,28 @@ std::vector<Lpoint> TxtFileReader::read()
 	std::cout << "Read points: " << idx << "\n";
 	return points;
 };
+
+std::vector<Lpoint> TxtFileReader::readOverlap(const Box& box, const Box& overlap)
+{
+}
+
+std::pair<Point, Point> TxtFileReader::readBoundingBox()
+{
+	double x_min = __DBL_MAX__, y_min = __DBL_MAX__, z_min = __DBL_MAX__;
+	double x_max = -__DBL_MAX__, y_max = -__DBL_MAX__, z_max = -__DBL_MAX__;
+	std::ifstream file(path.string());
+	std::string   line{};
+
+	while (std::getline(file, line, '\n'))
+	{
+		auto tokens = splitLine(line);
+		if (std::stod(tokens[0]) < x_min) x_min = std::stod(tokens[0]);
+		if (std::stod(tokens[1]) < y_min) y_min = std::stod(tokens[1]);
+		if (std::stod(tokens[2]) < z_min) z_min = std::stod(tokens[2]);
+		if (std::stod(tokens[0]) > x_max) x_max = std::stod(tokens[0]);
+		if (std::stod(tokens[1]) > y_max) y_max = std::stod(tokens[1]);
+		if (std::stod(tokens[2]) > z_max) z_max = std::stod(tokens[2]);
+	}
+
+	return std::make_pair(Point{x_min, y_min, z_min}, Point{x_max, y_max, z_max});
+}

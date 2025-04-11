@@ -184,7 +184,7 @@ class Point : public chs::Point
 	// Overload << operator for Point.
 	friend std::ostream& operator<<(std::ostream& out, const Point& p)
 	{
-		out << p.id_ << " " << p(0) << " " << p(1) << " " << p(1);
+		out << p.id_ << " " << p(0) << " " << p(1) << " " << p(2);
 		return out;
 	}
 

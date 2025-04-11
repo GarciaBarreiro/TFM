@@ -16,7 +16,8 @@ void printHelp()
 	       "-o: Path to output file (directory)\n"
 		   "-r: Search radius (default: 0)\n"
 		   "-R: Enable decimation using (total points)/R points\n"
-		   "-s: Cheesemap cell size (default: 1.0)\n";
+		   "-s: Cheesemap cell size (default: 1.0)\n"
+		   "-z: Write output to LAZ (default: LAS)\n";
 	exit(1);
 }
 
@@ -64,6 +65,11 @@ void processArgs(int argc, char** argv)
 			case 's': {
 				mainOptions.cellSize = std::stof(optarg);
 				std::cout << "Cheesemap cell size set to: " << mainOptions.cellSize << "\n";
+				break;
+			}
+			case 'z': {
+				mainOptions.zip = true;
+				std::cout << "Set output to LAZ clouds\n";
 				break;
 			}
 			case '?': // Unrecognized option

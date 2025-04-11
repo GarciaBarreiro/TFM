@@ -29,6 +29,18 @@ class TxtFileReader : public FileReader
 	 * @return Number of columns of the file
 	 */
 	void setNumberOfColumns(std::ifstream& file);
+
+	/**
+	 * @brief Reads the points contained in the .txt/.xyz file
+	 * @return Vector of Lpoint
+	 */
+	[[deprecated("not yet implemented")]] std::vector<Lpoint> readOverlap(const Box& box, const Box& overlap);
+
+	/**
+	 * @brief Reads the bounding box of the .txt/.xyz file
+	 * @return Pair of min and max coordinates
+	 */
+	std::pair<Point, Point> readBoundingBox();
 };
 
 std::vector<std::string> splitLine(std::string& line);
