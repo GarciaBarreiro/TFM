@@ -12,6 +12,7 @@
 #include <mpi.h>
 #include "partitions.hpp"
 #include "Box.hpp"
+#include <fstream>
 
 namespace fs = std::filesystem;
 
@@ -81,6 +82,9 @@ int main(int argc, char* argv[])
 
 	if (mainOptions.radius > 0)
 	{
+		std::string debstr;
+		debstr += std::to_string(npes) + ", " + std::to_string(rank) + ", ";
+
 		// create MPI_Datatype and send each process its own box
 		std::pair<Point, Point> minmax;
 		MPI_Scatter(boxes.data(), sizeof(minmax), MPI_BYTE, &minmax, sizeof(minmax), MPI_BYTE, 0, MPI_COMM_WORLD);
@@ -92,6 +96,13 @@ int main(int argc, char* argv[])
 		// read points
 		tw.start();
 		points = readPointCloudOverlap(inputFile, b, overlap);
+		tw.stop();
+		int nover = 0;
+		#pragma omp parallel for reduction(+:nover)
+		for (auto& p : points) { if (p.overlap) nover++; }
+		debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", " +
+				std::to_string(points.size()) + ", " + std::to_string(nover) + ", ";
+
 		// cheesemap
 		std::cout << "Building global cheesemap..." << std::endl;
 		tw.start();
@@ -105,6 +116,8 @@ int main(int argc, char* argv[])
 		std::cout << "Estimated mem. footprint: " << map.mem_footprint() << " Bytes (" << mb << "MB)" << '\n';
 
 		std::cout << "Number of cells: " << map.get_num_cells() << ", of which, empty: " << map.get_empty_cells() << "\n";
+		debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", " +
+				std::to_string(map.get_num_cells()) + ", " + std::to_string(map.get_empty_cells()) + ", ";
 
 		// neigh search
 		tw.start();
@@ -120,6 +133,7 @@ int main(int argc, char* argv[])
 		}
 		tw.stop();
 		std::cout << "Time to calculate descriptors: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+		debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", ";
 
 		string ext = (mainOptions.zip) ? ".laz" : ".las";
 		fs::path outputFile = mainOptions.outputDirName / (fileName + "_feat" + std::to_string(rank) + ext);
@@ -127,6 +141,13 @@ int main(int argc, char* argv[])
 		writePointCloudDescriptors(outputFile, points);
 		tw.stop();
 		std::cout << "Time to write point cloud descriptors: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+		debstr += std::to_string(tw.getElapsedDecimalSeconds()) + "\n";
+
+		fs::path debugFile = mainOptions.outputDirName / (fileName + "_deb.csv");
+		std::ofstream deb;
+		deb.open(debugFile, std::ofstream::app);
+		deb << debstr;
+		deb.close();
 
 		// Global Octree Creation
 		/*
