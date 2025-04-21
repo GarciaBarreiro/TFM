@@ -50,14 +50,15 @@ int main(int argc, char* argv[])
 
 	if (rank == 0)
 	{
+		tw.start();
+		points = readPointCloud(inputFile);
+		tw.stop();
+		std::cout << "Number of read points: " << points.size() << "\n";
+		std::cout << "Time to read points: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+
 		// decimation (only if stated as such, easier doing it on 1 node)
 		if (mainOptions.dec > 0)
 		{
-			tw.start();
-			points = readPointCloud(inputFile);
-			tw.stop();
-			std::cout << "Number of read points: " << points.size() << "\n";
-			std::cout << "Time to read points: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 			decimateAndRotate(points, mainOptions.dec);
 
 			string ext = (mainOptions.zip) ? ".laz" : ".las";
@@ -67,8 +68,6 @@ int main(int argc, char* argv[])
 			tw.stop();
 			std::cout << "Time to write point cloud: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 
-			points.clear();
-
 			inputFile = outputFile;
 		}
 
@@ -76,8 +75,11 @@ int main(int argc, char* argv[])
 		if (mainOptions.radius > 0)
 		{
 			auto minmax = readBoundingBox(inputFile);
-			boxes = naivePart(minmax, npes);
+			// boxes = naivePart(minmax, npes);
+			boxes = cellPart(minmax, npes, points, false);	// points passed are always not decimated 
 		}
+
+		points.clear();
 	}
 
 	if (mainOptions.radius > 0)
@@ -85,60 +87,86 @@ int main(int argc, char* argv[])
 		std::string debstr;
 		debstr += std::to_string(npes) + ", " + std::to_string(rank) + ", ";
 
-		// create MPI_Datatype and send each process its own box
-		std::pair<Point, Point> minmax;
-		MPI_Scatter(boxes.data(), sizeof(minmax), MPI_BYTE, &minmax, sizeof(minmax), MPI_BYTE, 0, MPI_COMM_WORLD);
-		
-		const float rad = mainOptions.radius;	// search radius
-		Box b(minmax);
-		Box overlap(std::pair<Point, Point>(minmax.first - rad, minmax.second + rad));
-
-		// read points
-		tw.start();
-		points = readPointCloudOverlap(inputFile, b, overlap);
-		tw.stop();
-		int nover = 0;
-		#pragma omp parallel for reduction(+:nover)
-		for (auto& p : points) { if (p.overlap) nover++; }
-		debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", " +
-				std::to_string(points.size()) + ", " + std::to_string(nover) + ", ";
-
-		// cheesemap
-		std::cout << "Building global cheesemap..." << std::endl;
-		tw.start();
-		const auto flags = chs::flags::build::PARALLEL | chs::flags::build::SHRINK_TO_FIT;
-		auto map = chs::Dense<Lpoint, 2>(points, mainOptions.cellSize, flags);
-		tw.stop();
-		std::cout << "Time to build global cheesemap: " << tw.getElapsedDecimalSeconds() << " seconds\n";
-
-		const auto bytes = map.mem_footprint();
-		const auto mb    = bytes / (1024.0 * 1024.0);
-		std::cout << "Estimated mem. footprint: " << map.mem_footprint() << " Bytes (" << mb << "MB)" << '\n';
-
-		std::cout << "Number of cells: " << map.get_num_cells() << ", of which, empty: " << map.get_empty_cells() << "\n";
-		debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", " +
-				std::to_string(map.get_num_cells()) + ", " + std::to_string(map.get_empty_cells()) + ", ";
-
-		// neigh search
-		tw.start();
-		#pragma omp parallel for
-		for (auto& p : points)
-		{
-			if (p.overlap) continue;
-			chs::kernels::Sphere<3> search(p, rad);
-			const auto results_map = map.query(search);	// vector with neighs of P inside a sphere of radius rads
-			std::vector<Lpoint> neigh{};	// quick conversion to Lpoint vector
-			for (auto m : results_map) { neigh.push_back(Lpoint(m[0][0], m[0][1], m[0][2])); }
-			features(neigh, p);
+		// get sendcounts and displacements for MPI_Scatterv, then send data as MPI_BYTE
+		int boxsize = (rank == 0) ? boxes.size() : 0;
+		MPI_Bcast(&boxsize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+		std::vector<int> sendcounts(npes, std::ceil(static_cast<double>(boxsize)/npes));
+		std::vector<int> displs(npes, 0);
+		size_t pairsize = sizeof(std::pair<Point, Point>);
+		int mod = npes - boxsize % npes;
+		int i = npes - 1;
+		while (mod && mod != npes) {
+			sendcounts[i--]--;
+			if (i < 0) i = boxsize - 1;	// shouldn't happen
+			mod--;
 		}
-		tw.stop();
-		std::cout << "Time to calculate descriptors: " << tw.getElapsedDecimalSeconds() << " seconds\n";
-		debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", ";
+		for (int i = 0; i < sendcounts.size(); i++)
+		{
+			sendcounts[i] *= pairsize;
+			displs[i] = (i == 0) ? 0 : sendcounts[i-1] + displs[i-1];
+		}
+
+		std::vector<std::pair<Point, Point>> lboxes;
+		lboxes.resize(sendcounts[rank]/pairsize);
+		MPI_Scatterv(boxes.data(), sendcounts.data(), displs.data(), MPI_BYTE, lboxes.data(), sendcounts[rank], MPI_BYTE, 0, MPI_COMM_WORLD);
+		lboxes.shrink_to_fit();
+
+		std::vector<Lpoint> totPoints;	// vector to append points to after each iteration
+		const float rad = mainOptions.radius;	// search radius
+		for (auto minmax : lboxes)
+		{
+			Box b(minmax);
+			Box overlap(std::pair<Point, Point>(minmax.first - rad, minmax.second + rad));
+
+			// read points
+			tw.start();
+			points = readPointCloudOverlap(inputFile, b, overlap);
+			tw.stop();
+			int nover = 0;
+			#pragma omp parallel for reduction(+:nover)
+			for (auto& p : points) { if (p.overlap) nover++; }
+			debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", " +
+					std::to_string(points.size()) + ", " + std::to_string(nover) + ", ";
+
+			// cheesemap
+			std::cout << "Building global cheesemap..." << std::endl;
+			tw.start();
+			const auto flags = chs::flags::build::PARALLEL | chs::flags::build::SHRINK_TO_FIT;
+			auto map = chs::Dense<Lpoint, 2>(points, mainOptions.cellSize, flags);
+			tw.stop();
+			std::cout << rank << ": Time to build global cheesemap of " << points.size() << ": " << tw.getElapsedDecimalSeconds() << " seconds\n";
+
+			const auto bytes = map.mem_footprint();
+			const auto mb    = bytes / (1024.0 * 1024.0);
+			std::cout << "Estimated mem. footprint: " << map.mem_footprint() << " Bytes (" << mb << "MB)" << '\n';
+
+			std::cout << "Number of cells: " << map.get_num_cells() << ", of which, empty: " << map.get_empty_cells() << "\n";
+			debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", " +
+					std::to_string(map.get_num_cells()) + ", " + std::to_string(map.get_empty_cells()) + ", ";
+
+			// neigh search
+			tw.start();
+			#pragma omp parallel for
+			for (auto& p : points)
+			{
+				if (p.overlap) continue;
+				chs::kernels::Sphere<3> search(p, rad);
+				const auto results_map = map.query(search);	// vector with neighs of P inside a sphere of radius rads
+				std::vector<Lpoint> neigh{};	// quick conversion to Lpoint vector
+				for (auto m : results_map) { neigh.push_back(Lpoint(m[0][0], m[0][1], m[0][2])); }
+				features(neigh, p);
+			}
+			tw.stop();
+			std::cout << "Time to calculate descriptors: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+			debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", ";
+
+			totPoints.insert(totPoints.end(), points.begin(), points.end());
+		}
 
 		string ext = (mainOptions.zip) ? ".laz" : ".las";
 		fs::path outputFile = mainOptions.outputDirName / (fileName + "_feat" + std::to_string(rank) + ext);
 		tw.start();
-		writePointCloudDescriptors(outputFile, points);
+		writePointCloudDescriptors(outputFile, totPoints);
 		tw.stop();
 		std::cout << "Time to write point cloud descriptors: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 		debstr += std::to_string(tw.getElapsedDecimalSeconds()) + "\n";

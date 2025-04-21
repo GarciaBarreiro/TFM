@@ -1,4 +1,8 @@
 #include "partitions.hpp"
+#include "Lpoint.hpp"
+#include "decimation.hpp"
+#include "main_options.hpp"
+#include "Box.hpp"
 #include <queue>
 
 std::vector<std::pair<Point, Point>> naivePart(std::pair<Point, Point> boundingBox, int npes)
@@ -46,6 +50,47 @@ std::vector<std::pair<Point, Point>> naivePart(std::pair<Point, Point> boundingB
     {
         ret.emplace_back(boxes.front().first, boxes.front().second + epsilon);
         boxes.pop();
+    }
+
+    return ret;
+}
+
+std::vector<std::pair<Point, Point>> cellPart(std::pair<Point, Point> boundingBox, int npes, std::vector<Lpoint>& points, bool dec)
+{
+    // get dims, split BB in cells, read point cloud and put points in cells
+    // then return only non-empty cells, ordered from most to least points
+    std::vector<Lpoint> decPoints;
+    if (!dec)
+    {
+        auto temp = jumpDec(points, 1000);
+        for (auto t : temp) { decPoints.push_back(Lpoint(t.x, t.y, t.z)); } // probably faster way to convert them
+    } else { decPoints = points; }
+
+    // create 2D grid
+    double xlen = (boundingBox.second.getX() - boundingBox.first.getX()) / npes;
+    double ylen = (boundingBox.second.getY() - boundingBox.first.getY()) / npes;
+    std::vector<int> cells(npes * npes, 0);
+    #pragma omp parallel for
+    for (auto p : decPoints)
+    {
+        auto xidx = static_cast<int>(std::floor((p.getX() - boundingBox.first.getX()) / xlen));
+        auto yidx = static_cast<int>(std::floor((p.getY() - boundingBox.first.getY()) / ylen));
+        #pragma omp critical
+        cells[xidx * npes + yidx]++;
+    }
+
+    // TODO: order points to get better load balancing
+    std::vector<std::pair<Point, Point>> ret;
+    for (int i = 0; i < npes * npes; i++)
+    {
+        if (cells[i] == 0) { continue; }
+        Point min{boundingBox.first.getX() + std::floor(i / npes) * xlen,
+                boundingBox.first.getY() + (i % npes) * ylen,
+                boundingBox.first.getZ()};
+        Point max{boundingBox.first.getX() + std::floor((i + npes) / npes) * xlen,
+                boundingBox.first.getY() + ((i % npes) + 1) * ylen,
+                boundingBox.second.getZ()};
+        ret.emplace_back(min, max);
     }
 
     return ret;
