@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
 	if (rank == 0)
 	{
 		tw.start();
-		points = readPointCloud(inputFile);
+		points = readPointCloud(inputFile);		// TODO: decimate in read, then move this to dec > 0
 		tw.stop();
 		std::cout << "Number of read points: " << points.size() << "\n";
 		std::cout << "Time to read points: " << tw.getElapsedDecimalSeconds() << " seconds\n";
@@ -74,9 +74,14 @@ int main(int argc, char* argv[])
 		// get point cloud bounding box, split it
 		if (mainOptions.radius > 0)
 		{
+			tw.start();
 			auto minmax = readBoundingBox(inputFile);
 			// boxes = naivePart(minmax, npes);
-			boxes = cellPart(minmax, npes, points, false);	// points passed are always not decimated 
+			// boxes = cellPart(minmax, npes, points);	// points passed are always not decimated 
+			// boxes = cellMergePart(minmax, npes, points);
+			boxes = quadPart(minmax, npes, points);
+			tw.stop();
+			std::cout << "Time to partition point cloud: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 		}
 
 		points.clear();

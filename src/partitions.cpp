@@ -3,6 +3,7 @@
 #include "decimation.hpp"
 #include "main_options.hpp"
 #include "Box.hpp"
+#include "quadtree.h"
 #include <queue>
 
 std::vector<std::pair<Point, Point>> naivePart(std::pair<Point, Point> boundingBox, int npes)
@@ -55,23 +56,22 @@ std::vector<std::pair<Point, Point>> naivePart(std::pair<Point, Point> boundingB
     return ret;
 }
 
-std::vector<std::pair<Point, Point>> cellPart(std::pair<Point, Point> boundingBox, int npes, std::vector<Lpoint>& points, bool dec)
+std::vector<std::pair<Point, Point>> cellPart(std::pair<Point, Point> boundingBox, int npes, const std::vector<Lpoint>& points)
 {
     // get dims, split BB in cells, read point cloud and put points in cells
     // then return only non-empty cells, ordered from most to least points
+    auto temp = jumpDec(points, 1000);
     std::vector<Lpoint> decPoints;
-    if (!dec)
-    {
-        auto temp = jumpDec(points, 1000);
-        for (auto t : temp) { decPoints.push_back(Lpoint(t.x, t.y, t.z)); } // probably faster way to convert them
-    } else { decPoints = points; }
+    decPoints.reserve(temp.size());
+    for (auto t : temp) { decPoints.push_back(Lpoint(t.x, t.y, t.z)); } // probably faster way to convert them
+    temp.clear();
 
     // create 2D grid
-    double xlen = (boundingBox.second.getX() - boundingBox.first.getX()) / npes;
-    double ylen = (boundingBox.second.getY() - boundingBox.first.getY()) / npes;
+    const double xlen = (boundingBox.second.getX() - boundingBox.first.getX()) / npes;
+    const double ylen = (boundingBox.second.getY() - boundingBox.first.getY()) / npes;
     std::vector<int> cells(npes * npes, 0);
     #pragma omp parallel for
-    for (auto p : decPoints)
+    for (const auto p : decPoints)
     {
         auto xidx = static_cast<int>(std::floor((p.getX() - boundingBox.first.getX()) / xlen));
         auto yidx = static_cast<int>(std::floor((p.getY() - boundingBox.first.getY()) / ylen));
@@ -93,5 +93,27 @@ std::vector<std::pair<Point, Point>> cellPart(std::pair<Point, Point> boundingBo
         ret.emplace_back(min, max);
     }
 
+    return ret;
+}
+
+std::vector<std::pair<Point, Point>> quadPart(std::pair<Point, Point> boundingBox, int npes, const std::vector<Lpoint>& points)
+{
+    auto temp = jumpDec(points, 1000);
+    std::vector<Lpoint> decPoints;
+    decPoints.reserve(temp.size());
+    for (auto t : temp) { decPoints.push_back(Lpoint(t.x, t.y, t.z)); }
+    temp.clear();
+
+    // create quadtree (smaller quadrants means better load balancing)
+    Quadtree quad(decPoints, boundingBox, decPoints.size() / (npes * npes));
+
+    // return quadrants
+    // setting correct Z, because the way quadrants are created modifies the original values of Z
+    auto ret = quad.getQuadrants();
+    for (auto& r : ret)
+    {
+        r.first.setZ(boundingBox.first.getZ());
+        r.second.setZ(boundingBox.second.getZ());
+    }
     return ret;
 }
