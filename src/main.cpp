@@ -89,9 +89,6 @@ int main(int argc, char* argv[])
 
 	if (mainOptions.radius > 0)
 	{
-		std::string debstr;
-		debstr += std::to_string(npes) + ", " + std::to_string(rank) + ", ";
-
 		// get sendcounts and displacements for MPI_Scatterv, then send data as MPI_BYTE
 		int boxsize = (rank == 0) ? boxes.size() : 0;
 		MPI_Bcast(&boxsize, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -116,22 +113,31 @@ int main(int argc, char* argv[])
 		MPI_Scatterv(boxes.data(), sendcounts.data(), displs.data(), MPI_BYTE, lboxes.data(), sendcounts[rank], MPI_BYTE, 0, MPI_COMM_WORLD);
 		lboxes.shrink_to_fit();
 
-		std::vector<Lpoint> totPoints;	// vector to append points to after each iteration
 		const float rad = mainOptions.radius;	// search radius
-		for (auto minmax : lboxes)
+		std::vector<Box> boxboxes;
+		std::vector<Box> overlaps;
+		for (int i = 0; i < lboxes.size(); i++)
 		{
-			Box b(minmax);
-			Box overlap(std::pair<Point, Point>(minmax.first - rad, minmax.second + rad));
-
-			// read points
-			tw.start();
-			points = readPointCloudOverlap(inputFile, b, overlap);
-			tw.stop();
-			int nover = 0;
+			boxboxes.emplace_back(lboxes[i]);
+			overlaps.emplace_back(std::pair<Point, Point>(lboxes[i].first - rad, lboxes[i].second + rad));
+		}
+		unsigned int npoints = 0, nover = 0, ncells = 0, nempty = 0;	// for debug output
+		double readt = 0, cheeset = 0, desct = 0;
+		// read points
+		tw.start();
+		std::vector<std::vector<Lpoint>> lpoints = readPointCloudOverlap(inputFile, boxboxes, overlaps);
+		tw.stop();
+		readt = tw.getElapsedDecimalSeconds();
+		boxboxes.clear();
+		overlaps.clear();
+		std::vector<Lpoint> totPoints;	// vector to append points to after each iteration
+		unsigned short part = rank;		// this is just to save to point cloud
+		for (auto& points : lpoints)
+		{
 			#pragma omp parallel for reduction(+:nover)
 			for (auto& p : points) { if (p.overlap) nover++; }
-			debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", " +
-					std::to_string(points.size()) + ", " + std::to_string(nover) + ", ";
+			npoints += points.size();
+			// debstr += std::to_string(points.size()) + ", " + std::to_string(nover) + ", ";
 
 			// cheesemap
 			std::cout << "Building global cheesemap..." << std::endl;
@@ -146,8 +152,11 @@ int main(int argc, char* argv[])
 			std::cout << "Estimated mem. footprint: " << map.mem_footprint() << " Bytes (" << mb << "MB)" << '\n';
 
 			std::cout << "Number of cells: " << map.get_num_cells() << ", of which, empty: " << map.get_empty_cells() << "\n";
-			debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", " +
-					std::to_string(map.get_num_cells()) + ", " + std::to_string(map.get_empty_cells()) + ", ";
+			cheeset += tw.getElapsedDecimalSeconds();
+			ncells += map.get_num_cells();
+			nempty += map.get_empty_cells();
+			// debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", " +
+			// 		std::to_string(map.get_num_cells()) + ", " + std::to_string(map.get_empty_cells()) + ", ";
 
 			// neigh search
 			tw.start();
@@ -160,12 +169,15 @@ int main(int argc, char* argv[])
 				std::vector<Lpoint> neigh{};	// quick conversion to Lpoint vector
 				for (auto m : results_map) { neigh.push_back(Lpoint(m[0][0], m[0][1], m[0][2])); }
 				features(neigh, p);
+				p.part = part;
 			}
 			tw.stop();
 			std::cout << "Time to calculate descriptors: " << tw.getElapsedDecimalSeconds() << " seconds\n";
-			debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", ";
+			// debstr += std::to_string(tw.getElapsedDecimalSeconds()) + ", ";
+			desct += tw.getElapsedDecimalSeconds();
 
 			totPoints.insert(totPoints.end(), points.begin(), points.end());
+			part += npes;
 		}
 
 		string ext = (mainOptions.zip) ? ".laz" : ".las";
@@ -174,12 +186,12 @@ int main(int argc, char* argv[])
 		writePointCloudDescriptors(outputFile, totPoints);
 		tw.stop();
 		std::cout << "Time to write point cloud descriptors: " << tw.getElapsedDecimalSeconds() << " seconds\n";
-		debstr += std::to_string(tw.getElapsedDecimalSeconds()) + "\n";
-
+		
 		fs::path debugFile = mainOptions.outputDirName / (fileName + "_deb.csv");
 		std::ofstream deb;
 		deb.open(debugFile, std::ofstream::app);
-		deb << debstr;
+		deb << npes << ", " << rank << ", " << readt << ", " << npoints << ", " << nover << ", " << cheeset
+			<< ", " << ncells << ", " << nempty << ", " << desct << ", " << tw.getElapsedDecimalSeconds() << "\n";
 		deb.close();
 
 		// Global Octree Creation

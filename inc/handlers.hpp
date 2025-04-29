@@ -38,6 +38,8 @@ std::vector<Lpoint> readPointCloud(const fs::path& filename);
 
 std::vector<Lpoint> readPointCloudOverlap(const fs::path& filename, const Box& box, const Box& overlap);
 
+std::vector<std::vector<Lpoint>> readPointCloudOverlap(const fs::path& filename, const std::vector<Box>& boxes, const std::vector<Box>& overlaps);
+
 std::pair<Point, Point> readBoundingBox(const fs::path& filename);
 
 void writePointCloud(const fs::path& fileName, std::vector<Lpoint>& points);

@@ -120,6 +120,10 @@ std::vector<Lpoint> TxtFileReader::readOverlap(const Box& box, const Box& overla
 {
 }
 
+std::vector<std::vector<Lpoint>> TxtFileReader::readOverlap(const std::vector<Box>& boxes, const std::vector<Box>& overlaps)
+{
+}
+
 std::pair<Point, Point> TxtFileReader::readBoundingBox()
 {
 	double x_min = __DBL_MAX__, y_min = __DBL_MAX__, z_min = __DBL_MAX__;

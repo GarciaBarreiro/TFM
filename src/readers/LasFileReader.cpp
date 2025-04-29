@@ -5,6 +5,23 @@
 #include "LasFileReader.hpp"
 #include "main_options.hpp"
 
+Lpoint getPoint(unsigned int idx, LASpoint& p, double x, double y, double z)
+{
+	return Lpoint(idx, x, y, z,
+		static_cast<double>(p.get_intensity()),
+		static_cast<unsigned short>(p.get_return_number()),
+		static_cast<unsigned short>(p.get_number_of_returns()),
+		static_cast<unsigned short>(p.get_scan_direction_flag()),
+		static_cast<unsigned short>(p.get_edge_of_flight_line()),
+		static_cast<unsigned short>(p.get_classification()),
+		static_cast<char>(p.get_scan_angle_rank()),
+		static_cast<unsigned short>(p.get_user_data()),
+		static_cast<unsigned short>(p.get_point_source_ID()),
+		static_cast<unsigned int>(p.get_R()),
+		static_cast<unsigned int>(p.get_G()),
+		static_cast<unsigned int>(p.get_B()));
+}
+
 std::vector<Lpoint> LasFileReader::read()
 {
 	std::vector<Lpoint> points;
@@ -32,21 +49,9 @@ std::vector<Lpoint> LasFileReader::read()
 	// Main bucle
 	while (lasreader->read_point())
 	{
-		points.emplace_back(idx++, static_cast<double>(lasreader->point.get_X() * xScale + xOffset),
-		                    static_cast<double>(lasreader->point.get_Y() * yScale + yOffset),
-		                    static_cast<double>(lasreader->point.get_Z() * zScale + zOffset),
-		                    static_cast<double>(lasreader->point.get_intensity()),
-		                    static_cast<unsigned short>(lasreader->point.get_return_number()),
-		                    static_cast<unsigned short>(lasreader->point.get_number_of_returns()),
-		                    static_cast<unsigned short>(lasreader->point.get_scan_direction_flag()),
-		                    static_cast<unsigned short>(lasreader->point.get_edge_of_flight_line()),
-		                    static_cast<unsigned short>(lasreader->point.get_classification()),
-		                    static_cast<char>(lasreader->point.get_scan_angle_rank()),
-		                    static_cast<unsigned short>(lasreader->point.get_user_data()),
-		                    static_cast<unsigned short>(lasreader->point.get_point_source_ID()),
-		                    static_cast<unsigned int>(lasreader->point.get_R()),
-		                    static_cast<unsigned int>(lasreader->point.get_G()),
-		                    static_cast<unsigned int>(lasreader->point.get_B()));
+		points.emplace_back(getPoint(idx++, lasreader->point, static_cast<double>(lasreader->point.get_X() * xScale + xOffset),
+							static_cast<double>(lasreader->point.get_Y() * yScale + yOffset),
+		                    static_cast<double>(lasreader->point.get_Z() * zScale + zOffset)));
 	}
 
 	delete lasreader;
@@ -82,20 +87,49 @@ std::vector<Lpoint> LasFileReader::readOverlap(const Box& box, const Box& overla
 				 static_cast<double>(lasreader->point.get_Z() * zScale + zOffset)};
 		if (overlap.isInside(p))
 		{
-			points.emplace_back(idx++, p.getX(), p.getY(), p.getZ(),
-								static_cast<double>(lasreader->point.get_intensity()),
-								static_cast<unsigned short>(lasreader->point.get_return_number()),
-								static_cast<unsigned short>(lasreader->point.get_number_of_returns()),
-								static_cast<unsigned short>(lasreader->point.get_scan_direction_flag()),
-								static_cast<unsigned short>(lasreader->point.get_edge_of_flight_line()),
-								static_cast<unsigned short>(lasreader->point.get_classification()),
-								static_cast<char>(lasreader->point.get_scan_angle_rank()),
-								static_cast<unsigned short>(lasreader->point.get_user_data()),
-								static_cast<unsigned short>(lasreader->point.get_point_source_ID()),
-								static_cast<unsigned int>(lasreader->point.get_R()),
-								static_cast<unsigned int>(lasreader->point.get_G()),
-								static_cast<unsigned int>(lasreader->point.get_B()));
+			points.emplace_back(getPoint(idx++, lasreader->point, p.getX(), p.getY(), p.getZ()));
 			points.back().overlap = !box.isInside(p);
+		}
+	}
+
+	delete lasreader;
+	return points;
+}
+
+std::vector<std::vector<Lpoint>> LasFileReader::readOverlap(const std::vector<Box>& boxes, const std::vector<Box>& overlaps)
+{
+	std::vector<std::vector<Lpoint>> points(boxes.size());
+
+	// LAS File reading
+	LASreadOpener lasreadopener;
+	lasreadopener.set_file_name(path.c_str());
+	LASreader* lasreader = lasreadopener.open();
+
+	// Scale factors for each coordinate
+	double xScale = lasreader->header.x_scale_factor;
+	double yScale = lasreader->header.y_scale_factor;
+	double zScale = lasreader->header.z_scale_factor;
+
+	double xOffset = lasreader->header.x_offset;
+	double yOffset = lasreader->header.y_offset;
+	double zOffset = lasreader->header.z_offset;
+
+	// Index of the read point
+	unsigned int idx = 0;
+
+	// Main bucle
+	while (lasreader->read_point())
+	{
+		Point p {static_cast<double>(lasreader->point.get_X() * xScale + xOffset),
+				 static_cast<double>(lasreader->point.get_Y() * yScale + yOffset),
+				 static_cast<double>(lasreader->point.get_Z() * zScale + zOffset)};
+		for (int i = 0; i < overlaps.size(); i++)	// points can be saved more than once, not great memory-wise
+		{
+			if (overlaps[i].isInside(p))
+			{
+				points[i].emplace_back(getPoint(idx++, lasreader->point, p.getX(), p.getY(), p.getZ()));
+				points[i].back().overlap = !boxes[i].isInside(p);
+			}
 		}
 	}
 

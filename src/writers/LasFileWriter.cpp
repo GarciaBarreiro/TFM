@@ -82,7 +82,7 @@ void LasFileWriter::writeDescriptors(std::vector<Lpoint>& points)
     
     // for specifying type, LASTools seems to use the values found on the LAS spec - 1
     // so if in the spec the value for double is 10, here it is 9
-    std::array<I32, 18> indices{};
+    std::array<I32, 19> indices{};
     indices[0]  = _addAttribute(lasheader, 4,     1, "number of neighbors");    // unsigned int
     indices[1]  = _addAttribute(lasheader, 4, 0.001, "sum of eigenvalues");
     indices[2]  = _addAttribute(lasheader, 2, 0.001, "omnivariance");           // unsigned short
@@ -101,12 +101,13 @@ void LasFileWriter::writeDescriptors(std::vector<Lpoint>& points)
     indices[15] = _addAttribute(lasheader, 4, 0.001, "absolute moment [5]");    // unsigned int
     indices[16] = _addAttribute(lasheader, 5, 0.001, "vertical moment [0]");    // int
     indices[17] = _addAttribute(lasheader, 5, 0.001, "vertical moment [1]");
+    indices[18] = _addAttribute(lasheader, 2,     1, "partition");              // unsigned short
 
     lasheader.update_extra_bytes_vlr();
     lasheader.point_data_record_length += lasheader.get_attributes_size();
 
     // indices for fast extra bytes access
-    std::array<I32, 18> att_starts{};
+    std::array<I32, 19> att_starts{};
     for (int i = 0; i < indices.size(); i++)
     {
         att_starts[i] = lasheader.get_attribute_start(indices[i]);
@@ -162,6 +163,7 @@ void LasFileWriter::writeDescriptors(std::vector<Lpoint>& points)
         laspoint.set_attribute(att_starts[15], std::isnan(p.absMom[5]) ? 0 : U32_QUANTIZE(1000 * p.absMom[5]));
         laspoint.set_attribute(att_starts[16], std::isnan(p.vertMom[0]) ? 0 : I32_QUANTIZE(1000 * p.vertMom[0]));
         laspoint.set_attribute(att_starts[17], std::isnan(p.vertMom[1]) ? 0 : I32_QUANTIZE(1000 * p.vertMom[1]));
+        laspoint.set_attribute(att_starts[18], p.part);
         
         laswriter->write_point(&laspoint);
         laswriter->update_inventory(&laspoint);

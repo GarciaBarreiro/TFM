@@ -34,6 +34,12 @@ class LasFileReader : public FileReader
     std::vector<Lpoint> readOverlap(const Box& box, const Box& overlap);
 
 	/**
+     * @brief Reads the points contained in the .las/.laz file that are inside boxes and overlaps
+     * @return Vector of vectors of Lpoint
+     */
+	std::vector<std::vector<Lpoint>> readOverlap(const std::vector<Box>& boxes, const std::vector<Box>& overlaps);
+
+	/**
 	 * @brief Reads the bounding box of the .las/.laz file
 	 * @return Pair of min and max coordinates
 	 */

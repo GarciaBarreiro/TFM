@@ -35,6 +35,12 @@ class TxtFileReader : public FileReader
 	 * @return Vector of Lpoint
 	 */
 	[[deprecated("not yet implemented")]] std::vector<Lpoint> readOverlap(const Box& box, const Box& overlap);
+	
+	/**
+	 * @brief Reads the points contained in the .txt/.xyz file
+	 * @return Vector of Lpoint
+	 */
+	[[deprecated("not yet implemented")]] std::vector<std::vector<Lpoint>> readOverlap(const std::vector<Box>& boxes, const std::vector<Box>& overlaps);
 
 	/**
 	 * @brief Reads the bounding box of the .txt/.xyz file

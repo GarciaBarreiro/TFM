@@ -49,5 +49,6 @@ class FileReader
 	virtual ~FileReader(){}; // Every specialization of this class must manage its own destruction
 	virtual std::vector<Lpoint> read() = 0;
 	virtual std::vector<Lpoint> readOverlap(const Box& box, const Box& overlap) = 0;
+	virtual std::vector<std::vector<Lpoint>> readOverlap(const std::vector<Box>& boxes, const std::vector<Box>& overlaps) = 0;
 	virtual std::pair<Point, Point> readBoundingBox() = 0;
 };
