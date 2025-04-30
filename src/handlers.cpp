@@ -39,6 +39,28 @@ std::vector<Lpoint> readPointCloud(const fs::path& filename)
 	return points;
 }
 
+std::vector<Lpoint> readPointCloudDec(const fs::path& filename, int dec)
+{
+	// Get Input File extension
+	auto fExt = filename.extension();
+
+	File_t readerType = chooseReaderType(fExt);
+
+	// asdf
+	if (readerType == err_t)
+	{
+		std::cout << "Uncompatible file format\n";
+		exit(-1);
+	}
+
+	std::shared_ptr<FileReader> fileReader = FileReaderFactory::makeReader(readerType, filename);
+
+	std::vector<Lpoint> points = fileReader->decRead(dec);
+	std::cout << "Point cloud size: " << points.size() << "\n";
+
+	return points;
+}
+
 std::vector<Lpoint> readPointCloudOverlap(const fs::path& filename, const Box& box, const Box& overlap)
 {
 	// Get Input File extension

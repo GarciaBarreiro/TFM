@@ -50,15 +50,14 @@ int main(int argc, char* argv[])
 
 	if (rank == 0)
 	{
-		tw.start();
-		points = readPointCloud(inputFile);		// TODO: decimate in read, then move this to dec > 0
-		tw.stop();
-		std::cout << "Number of read points: " << points.size() << "\n";
-		std::cout << "Time to read points: " << tw.getElapsedDecimalSeconds() << " seconds\n";
-
 		// decimation (only if stated as such, easier doing it on 1 node)
 		if (mainOptions.dec > 0)
 		{
+			tw.start();
+			points = readPointCloud(inputFile);		// TODO: decimate in read, then move this to dec > 0
+			tw.stop();
+			std::cout << "Number of read points: " << points.size() << "\n";
+			std::cout << "Time to read points: " << tw.getElapsedDecimalSeconds() << " seconds\n";
 			decimateAndRotate(points, mainOptions.dec);
 
 			string ext = (mainOptions.zip) ? ".laz" : ".las";
@@ -76,12 +75,17 @@ int main(int argc, char* argv[])
 		{
 			tw.start();
 			auto minmax = readBoundingBox(inputFile);
-			// boxes = naivePart(minmax, npes);
-			// boxes = cellPart(minmax, npes, points);	// points passed are always not decimated 
-			// boxes = cellMergePart(minmax, npes, points);
-			boxes = quadPart(minmax, npes, points);
-			tw.stop();
-			std::cout << "Time to partition point cloud: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+			if (npes == 1) boxes.emplace_back(minmax);
+			else
+			{
+				points = readPointCloudDec(inputFile, 1000);
+				// boxes = naivePart(minmax, npes);
+				// boxes = cellPart(minmax, npes, points);	// points passed are always not decimated
+				// boxes = cellMergePart(minmax, npes, points);
+				boxes = quadPart(minmax, npes, points);
+				tw.stop();
+				std::cout << "Time to partition point cloud: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+			}
 		}
 
 		points.clear();

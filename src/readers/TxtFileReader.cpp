@@ -116,6 +116,10 @@ std::vector<Lpoint> TxtFileReader::read()
 	return points;
 };
 
+std::vector<Lpoint> TxtFileReader::decRead(int jump)
+{
+}
+
 std::vector<Lpoint> TxtFileReader::readOverlap(const Box& box, const Box& overlap)
 {
 }

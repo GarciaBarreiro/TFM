@@ -58,6 +58,46 @@ std::vector<Lpoint> LasFileReader::read()
 	return points;
 }
 
+std::vector<Lpoint> LasFileReader::decRead(int jump)
+{
+	std::vector<Lpoint> points;
+
+	// LAS File reading
+	LASreadOpener lasreadopener;
+	lasreadopener.set_file_name(path.c_str());
+	LASreader* lasreader = lasreadopener.open();
+
+	// TODO: Use extended_point_records para LAS v1.4
+	// https://gitlab.citius.usc.es/oscar.garcia/las-shapefile-classifier/-/blob/master/lasreader_wrapper.cc
+
+	// Scale factors for each coordinate
+	double xScale = lasreader->header.x_scale_factor;
+	double yScale = lasreader->header.y_scale_factor;
+	double zScale = lasreader->header.z_scale_factor;
+
+	double xOffset = lasreader->header.x_offset;
+	double yOffset = lasreader->header.y_offset;
+	double zOffset = lasreader->header.z_offset;
+
+	// Index of the read point
+	unsigned int idx = 0;
+
+	// Main bucle
+	while (lasreader->read_point())
+	{
+		if (!(idx++ % jump))
+		{
+			points.emplace_back(getPoint(idx, lasreader->point,
+								static_cast<double>(lasreader->point.get_X() * xScale + xOffset),
+								static_cast<double>(lasreader->point.get_Y() * yScale + yOffset),
+								static_cast<double>(lasreader->point.get_Z() * zScale + zOffset)));
+		}
+	}
+
+	delete lasreader;
+	return points;
+}
+
 std::vector<Lpoint> LasFileReader::readOverlap(const Box& box, const Box& overlap)
 {
 	std::vector<Lpoint> points;

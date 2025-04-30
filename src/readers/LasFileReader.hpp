@@ -27,6 +27,12 @@ class LasFileReader : public FileReader
 	 */
 	std::vector<Lpoint> read();
 
+	/**
+	 * @brief Read 1 in every jump points contained in the .las/.laz file
+	 * @return Vector of Lpoint
+	 */
+	std::vector<Lpoint> decRead(int jump);
+
     /**
      * @brief Reads the points contained in the .las/.laz file that are inside the box and overlap
      * @return Vector of Lpoint

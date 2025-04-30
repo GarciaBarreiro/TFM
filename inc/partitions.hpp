@@ -18,4 +18,4 @@ std::vector<std::pair<Point, Point>> cellPart(std::pair<Point, Point> boundingBo
  * @brief Partitioning using decimated point cloud and a quadtree
  * @return Vector of min max coordinates pairs corresponding to filled quadrants
  */
-std::vector<std::pair<Point, Point>> quadPart(std::pair<Point, Point> boundingBox, int npes, const std::vector<Lpoint>& points);
+std::vector<std::pair<Point, Point>> quadPart(std::pair<Point, Point> boundingBox, int npes, std::vector<Lpoint>& points);
