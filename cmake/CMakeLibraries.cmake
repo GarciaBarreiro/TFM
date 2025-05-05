@@ -24,6 +24,22 @@ else()
     message(SEND_ERROR "Could not find MPI")
 endif()
 
+# Lapack
+find_package(LAPACK REQUIRED)
+if (LAPACK_FOUND)
+    message(STATUS "Lapack found and to be linked")
+else()
+    message(SEND_ERROR "Could not find Lapack")
+endif()
+
+# Blas
+find_package(BLAS REQUIRED)
+if (BLAS_FOUND)
+    message(STATUS "BLAS found and to be linked")
+else()
+    message(SEND_ERROR "Could not find BLAS")
+endif()
+
 # Armadillo
 find_package(Armadillo REQUIRED)
 if (TARGET armadillo::armadillo)
@@ -33,7 +49,7 @@ elseif (${ARMADILLO_FOUND})
     message(STATUS "Armadillo include: " ${ARMADILLO_INCLUDE_DIR})
     message(STATUS "Armadillo libraries: " ${ARMADILLO_LIBRARIES})
 else ()
-    message(SEND_ERROR "Could find armadillo::armadillo")
+    message(SEND_ERROR "Could not find armadillo::armadillo")
 endif ()
 
 # Eigen3
@@ -44,7 +60,7 @@ elseif (${EIGEN3_FOUND})
     include_directories(${EIGEN3_INCLUDE_DIR})
     message(STATUS "Eigen include: ${EIGEN3_INCLUDE_DIR}")
 else ()
-    message(SEND_ERROR "Could find Eigen3")
+    message(SEND_ERROR "Could not find Eigen3")
 endif ()
 
 # LASlib

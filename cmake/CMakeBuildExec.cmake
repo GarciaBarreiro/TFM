@@ -17,6 +17,18 @@ if (TARGET MPI::MPI_CXX)
             MPI::MPI_CXX)
 endif()
 
+if (TARGET LAPACK::LAPACK)
+        target_link_libraries(${PROJECT_NAME}
+            PRIVATE
+            LAPACK::LAPACK)
+endif()
+
+if (TARGET BLAS::BLAS)
+        target_link_libraries(${PROJECT_NAME}
+            PRIVATE
+            BLAS::BLAS)
+endif()
+
 if (TARGET armadillo::armadillo AND
         ARMADILLO_VERSION_MAJOR GREATER 13)
     target_link_libraries(${PROJECT_NAME}
