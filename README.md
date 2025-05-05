@@ -38,11 +38,23 @@ The following commands must be executed in the root folder of the project.
 
 - LASTools:
     ```bash
-    wget https://lastools.github.io/download/LAStools.zip && unzip LAStools.zip -d ./lib && rm LAStools.zip
+    wget https://lastools.github.io/download/LAStools_221128.zip && unzip LAStools_221128.zip -d ./lib && rm LAStools_221128.zip
     ```
 - LASlib:
     ```bash
     (cd lib/LAStools && cmake . && make)
+    ```
+- MathGeoLib:
+    ```bash
+    (cd lib && git clone https://github.com/juj/MathGeoLib && cd MathGeoLib && cmake -DCMAKE_BUILD_TYPE=Release . && make)
+    ```
+- Armadillo version may be outdated, if so:
+    ```bash
+    (cd lib && wget https://sourceforge.net/projects/arma/files/armadillo-14.4.2.tar.xz && tar -xJf armadillo-14.4.2.tar.xz && rm -r armadillo-14.4.2.tar.xz && mv armadillo-14.4.2/ armadillo/ && cd armadillo/ && cmake . && make)
+    ```
+- Range-v3:
+    ```bash
+    (cd lib && git clone https://github.com/ericniebler/range-v3 && cd range-v3 && cmake -DCMAKE_BUILD_TYPE=Release . && make)
     ```
 
 ## Usage
@@ -68,7 +80,7 @@ In the project directory, just execute
 
 This creates the executable build/rule-based-classifier-cpp.
 
-/!\ WARNING: If cmake is executed in the project directory, the already existing Makefile will be overwrited.
+/!\ WARNING: If cmake is executed in the project directory, the already existing Makefile will be overwritten.
 
 
 #### Execution
