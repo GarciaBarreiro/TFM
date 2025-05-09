@@ -36,7 +36,7 @@ void createDirectory(const fs::path& dirname);
 
 std::vector<Lpoint> readPointCloud(const fs::path& filename);
 
-std::vector<Lpoint> readPointCloudDec(const fs::path& filename, int dec);
+std::vector<Lpoint> readPointCloudDec(const fs::path& filename, int dec, float percent);
 
 std::vector<Lpoint> readPointCloudOverlap(const fs::path& filename, const Box& box, const Box& overlap);
 

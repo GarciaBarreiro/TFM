@@ -39,7 +39,7 @@ std::vector<Lpoint> readPointCloud(const fs::path& filename)
 	return points;
 }
 
-std::vector<Lpoint> readPointCloudDec(const fs::path& filename, int dec)
+std::vector<Lpoint> readPointCloudDec(const fs::path& filename, int dec, float percent)
 {
 	// Get Input File extension
 	auto fExt = filename.extension();
@@ -55,7 +55,7 @@ std::vector<Lpoint> readPointCloudDec(const fs::path& filename, int dec)
 
 	std::shared_ptr<FileReader> fileReader = FileReaderFactory::makeReader(readerType, filename);
 
-	std::vector<Lpoint> points = fileReader->decRead(dec);
+	std::vector<Lpoint> points = fileReader->decRead(dec, percent);
 	std::cout << "Point cloud size: " << points.size() << "\n";
 
 	return points;

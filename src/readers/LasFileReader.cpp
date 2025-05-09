@@ -4,6 +4,7 @@
 
 #include "LasFileReader.hpp"
 #include "main_options.hpp"
+#include <random>
 
 Lpoint getPoint(unsigned int idx, LASpoint& p, double x, double y, double z)
 {
@@ -58,7 +59,7 @@ std::vector<Lpoint> LasFileReader::read()
 	return points;
 }
 
-std::vector<Lpoint> LasFileReader::decRead(int jump)
+std::vector<Lpoint> LasFileReader::decRead(int jump, float percent)
 {
 	std::vector<Lpoint> points;
 
@@ -82,15 +83,21 @@ std::vector<Lpoint> LasFileReader::decRead(int jump)
 	// Index of the read point
 	unsigned int idx = 0;
 
+	static std::default_random_engine e;
+	static std::uniform_real_distribution<> dis(0, 1);	// [0,1)
+
 	// Main bucle
 	while (lasreader->read_point())
 	{
 		if (!(idx++ % jump))
 		{
-			points.emplace_back(getPoint(idx, lasreader->point,
-								static_cast<double>(lasreader->point.get_X() * xScale + xOffset),
-								static_cast<double>(lasreader->point.get_Y() * yScale + yOffset),
-								static_cast<double>(lasreader->point.get_Z() * zScale + zOffset)));
+			if (dis(e) <= percent)
+			{
+				points.emplace_back(getPoint(idx, lasreader->point,
+									static_cast<double>(lasreader->point.get_X() * xScale + xOffset),
+									static_cast<double>(lasreader->point.get_Y() * yScale + yOffset),
+									static_cast<double>(lasreader->point.get_Z() * zScale + zOffset)));
+			}
 		}
 	}
 

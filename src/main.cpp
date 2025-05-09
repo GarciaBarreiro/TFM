@@ -48,6 +48,7 @@ int main(int argc, char* argv[])
 	std::vector<Lpoint> points;
 	std::vector<std::pair<Point, Point>> boxes;
 
+	double partt = 0;	// time to partition (relevant only at 0)
 	if (rank == 0)
 	{
 		// decimation (only if stated as such, easier doing it on 1 node)
@@ -78,13 +79,14 @@ int main(int argc, char* argv[])
 			if (npes == 1) boxes.emplace_back(minmax);
 			else
 			{
-				points = readPointCloudDec(inputFile, 1000);
+				points = readPointCloudDec(inputFile, 100, 0.2);
 				// boxes = naivePart(minmax, npes);
 				// boxes = cellPart(minmax, npes, points);	// points passed are always not decimated
 				// boxes = cellMergePart(minmax, npes, points);
 				boxes = quadPart(minmax, npes, points);
 				tw.stop();
-				std::cout << "Time to partition point cloud: " << tw.getElapsedDecimalSeconds() << " seconds\n";
+				partt = tw.getElapsedDecimalSeconds();
+				std::cout << "Time to partition point cloud: " << partt << " seconds\n";
 			}
 		}
 
@@ -194,8 +196,9 @@ int main(int argc, char* argv[])
 		fs::path debugFile = mainOptions.outputDirName / (fileName + "_deb.csv");
 		std::ofstream deb;
 		deb.open(debugFile, std::ofstream::app);
-		deb << npes << ", " << rank << ", " << readt << ", " << npoints << ", " << nover << ", " << cheeset
-			<< ", " << ncells << ", " << nempty << ", " << desct << ", " << tw.getElapsedDecimalSeconds() << "\n";
+		deb << npes << ", " << rank << ", " << partt << ", " << lboxes.size() << ", " << readt << ", "
+			<< npoints << ", " << nover << ", " << cheeset << ", " << ncells << ", " << nempty << ", "
+			<< desct << ", " << tw.getElapsedDecimalSeconds() << "\n";
 		deb.close();
 
 		// Global Octree Creation

@@ -28,7 +28,7 @@ class TxtFileReader : public FileReader
 	 * @brief Read 1 in every jump points contained in the .txt/.xyz file
 	 * @return Vector of Lpoint
 	 */
-	[[deprecated("not yet implemented")]] std::vector<Lpoint> decRead(int jump);
+	[[deprecated("not yet implemented")]] std::vector<Lpoint> decRead(int jump, float percent);
 
 	/**
 	 * @brief Sets the number of columns of the file to be read

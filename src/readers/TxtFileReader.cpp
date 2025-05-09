@@ -116,7 +116,7 @@ std::vector<Lpoint> TxtFileReader::read()
 	return points;
 };
 
-std::vector<Lpoint> TxtFileReader::decRead(int jump)
+std::vector<Lpoint> TxtFileReader::decRead(int jump, float percent)
 {
 }
 
