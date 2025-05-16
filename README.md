@@ -93,7 +93,9 @@ sbatch -n ${MPI_nodes} -c ${threads_per_node} ${script_name}
 ```
 
 If using mpiexec:
-    mpiexec ${path_to_binary_executable} -i data/ptR_18C.las -r search_radius [-o output_dir]
+```bash
+mpiexec ${path_to_binary_executable} -i data/ptR_18C.las -r search_radius [-o output_dir]
+```
 
 ## Authorship
 Grupo de Arquitectura de Computadores (GAC)  
