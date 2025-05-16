@@ -32,6 +32,11 @@ cd TFM
       git clone https://aur.archlinux.org/armadillo.git lib/armadillo
       (cd armadillo && makepkg -si --noconfirm)
       ```
+
+If using Environment Modules, load available required dependencies. For example, in the supercomputer FinisTerrae III, the next command should be executed:
+```bash
+module load cesga/2020 gcc openmpi/4.0.5_ft3
+```
  
 The following commands must be executed in the root folder of the project.
 
@@ -65,14 +70,30 @@ There is one way to compile the project:
 In the project directory, just execute
   ```bash
   mkdir build && cd build
-  cmake -B build -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DCMAKE_BUILD_TYPE=Release ..
   make
   ```
 
 This creates the executable `build/rule-based-classifier-cpp`.
 
 #### Execution
-    ${path_to_binary_executable} -i data/ptR_18C.las -r search_radius [-o output_dir]
+
+If using slurm, create the following script:
+```bash
+#!/bin/bash
+#SBATCH -t 00:20:00         # Run time (hh:mm:ss) - 20 min
+#SBATCH --mem-per-cpu=4G    # Memory per core demanded
+
+srun ${path_to_binary_executable} -i data/ptR_18C.las -r 2
+```
+
+And then send the job with:
+```bash
+sbatch -n ${MPI_nodes} -c ${threads_per_node} ${script_name}
+```
+
+If using mpiexec:
+    mpiexec ${path_to_binary_executable} -i data/ptR_18C.las -r search_radius [-o output_dir]
 
 ## Authorship
 Grupo de Arquitectura de Computadores (GAC)  
