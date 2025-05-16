@@ -21,14 +21,14 @@ cd TFM
 ```
 
 #### Dependencies
-- Eigen and Armadillo (requires Armadillo 14 or greater. If it isn't available in the repositories, skip that package)
+- Eigen, Armadillo (requires Armadillo 14 or greater. If it isn't available in the repositories, skip that package) and OpenMPI
   - Ubuntu
       ```bash
-      sudo apt install libeigen3-dev libarmadillo-dev
+      sudo apt install libeigen3-dev libarmadillo-dev openmpi-bin openmpi-common openssh-client openssh-server libopenmpi1.3 libopenmpi-dbg libopenmpi-dev
       ```
   - ArchLinux
       ```bash
-      sudo pacman -S eigen
+      sudo pacman -S eigen openmpi
       git clone https://aur.archlinux.org/armadillo.git lib/armadillo
       (cd armadillo && makepkg -si --noconfirm)
       ```
