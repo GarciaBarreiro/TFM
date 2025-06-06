@@ -2,7 +2,7 @@
 [![pipeline status Master](https://gitlab.citius.usc.es/lidar/rule-based-classifier-cpp/badges/master/pipeline.svg)](https://gitlab.citius.usc.es/lidar/rule-based-classifier-cpp/commits/master)
 [![pipeline status Dev](https://gitlab.citius.usc.es/lidar/rule-based-classifier-cpp/badges/dev/pipeline.svg)](https://gitlab.citius.usc.es/lidar/rule-based-classifier-cpp/commits/dev)
 
-# rule-based-classifier: C++ version.
+# TFM
 
 ## Background
 
@@ -74,7 +74,7 @@ In the project directory, just execute
   make
   ```
 
-This creates the executable `build/rule-based-classifier-cpp`.
+This creates the executable `build/tfm`.
 
 #### Execution
 
